@@ -172,7 +172,7 @@ footer{text-align:center;color:#4a525b;font-size:12px;padding:26px 20px;border-t
           <div class="kpi"><div class="kv" style="color:var(--blu)" id="lp_tot">—</div><div class="kl">Payments</div></div>
           <div class="kpi"><div class="kv" style="color:var(--grn)" id="lp_pos">—</div><div class="kl">Poss Done</div></div>
           <div class="kpi"><div class="kv" style="color:var(--pur)" id="lp_rdy">—</div><div class="kl">Ready</div></div>
-          <div class="kpi"><div class="kv" style="color:var(--bad)" id="lp_ovd">—</div><div class="kl">Overdue &gt;10d</div></div>
+          <div class="kpi"><div class="kv" style="color:var(--bad)" id="lp_ovd">—</div><div class="kl">TAT Breached</div></div>
         </div>
         <div class="pwrap">
           <div class="prow"><span>Handover completion</span><b id="lp_pct">—</b></div>
@@ -181,7 +181,7 @@ footer{text-align:center;color:#4a525b;font-size:12px;padding:26px 20px;border-t
         <div class="alertline al-ok" id="lp_alert" style="display:none"></div>
         <div class="cfoot">
           <a class="open" id="lp_link" href="lifepark_dashboard_fixed.html">Open Lifepark Dashboard <span class="arrow">→</span></a>
-          <div class="cnote">Engineering overdue tracked at &gt;10 days from payment</div>
+          <div class="cnote">TAT: Account 48h · Engg 7d · Quality fix 3d · Desnag fix 2d</div>
         </div>
       </div>
 
@@ -339,36 +339,62 @@ function lifeparkStats(rows) {
   const find = n => hdr.findIndex(hh => hh.includes(n));
   const CI = { customer: find('CUSTOMER') >= 0 ? find('CUSTOMER') : 1,
     crm: find('PAYMENT') >= 0 ? find('PAYMENT') : 4, crm_date: -1,
-    account: -1, engg: -1, quality: -1, facility: -1 };
+    account: -1, acc_date: -1, engg: -1, engg_date: -1,
+    quality: -1, q_date: -1, facility: -1, fac_date: -1 };
   for (let c = CI.crm + 1; c < hdr.length; c++) if (hdr[c].includes('DATE')) { CI.crm_date = c; break; }
   if (CI.crm_date < 0) CI.crm_date = CI.crm + 1;
   const keyCol = find('KEY');
   const stages = ['account','engg','quality','facility'];
+  const dk = { account:'acc_date', engg:'engg_date', quality:'q_date', facility:'fac_date' };
   let si = 0;
   for (let c = CI.crm_date + 1; c < hdr.length && si < 4; c++) {
     if (keyCol >= 0 && c >= keyCol) break;
-    if (hdr[c].includes('STATUS')) { CI[stages[si]] = c; si++; }
+    if (hdr[c].includes('STATUS')) {
+      CI[stages[si]] = c;
+      for (let dd = c + 1; dd < hdr.length; dd++) {
+        if (hdr[dd].includes('STATUS') || (keyCol >= 0 && dd >= keyCol)) break;
+        if (hdr[dd].includes('DATE')) { CI[dk[stages[si]]] = dd; break; }
+      }
+      si++;
+    }
   }
   if (CI.account  < 0) CI.account  = 6;
-  if (CI.engg     < 0) CI.engg     = find('ENGG') >= 0 ? find('ENGG') : 8;
+  if (CI.engg     < 0) CI.engg     = 8;
   if (CI.quality  < 0) CI.quality  = 11;
   if (CI.facility < 0) CI.facility = 13;
 
   const today = today0();
-  let tot=0, pos=0, rdy=0, ovd=0;
+  let tot=0, paid=0, pos=0, rdy=0, brc=0;
   for (let i = hi + 1; i < rows.length; i++) {
     const r = rows[i]; if (!r || r.length === 0) continue;
     const name = String(r[CI.customer]||'').trim();
     if (!name || (!isNaN(Number(name)) && name.length < 4)) continue;
     tot++;
-    const fac = norm(r[CI.facility]);
-    if (fac === 'POSSDONE') pos++;
-    if (fac === 'READY' || fac === 'DONE') rdy++;
-    const d = parseDate(r[CI.crm_date]);
-    const days = d ? Math.floor((today - d)/86400000) : null;
-    if (norm(r[CI.engg]) === 'NOTDONE' && days !== null && days > 10) ovd++;
+    const crm = norm(r[CI.crm]);
+    if (crm !== 'RECEIVED') continue;          // Payments = CRM status, not row count
+    paid++;
+    const facility = norm(r[CI.facility]);
+    if (facility === 'POSSDONE') { pos++; continue; }
+    if (facility === 'READY' || facility === 'DONE') { rdy++; continue; }
+
+    const crmDate = parseDate(r[CI.crm_date]);
+    if (!crmDate) continue;
+    const accDate = CI.acc_date >= 0 ? parseDate(r[CI.acc_date]) : null;
+    const qDate   = CI.q_date   >= 0 ? parseDate(r[CI.q_date])   : null;
+    const facDate = CI.fac_date >= 0 ? parseDate(r[CI.fac_date]) : null;
+    const account = norm(r[CI.account]), engg = norm(r[CI.engg]);
+    const quality = norm(r[CI.quality]);
+
+    let deadline = null;
+    const accConfirmed = (account === 'RECEIVED' || account === 'DONE');
+    if (!accConfirmed)              deadline = addDays(crmDate, TAT.account);
+    else if (engg !== 'DONE')       deadline = addDays(accDate || addDays(crmDate, TAT.account), TAT.engg);
+    else if (quality === 'PENDING') deadline = addDays(qDate || crmDate, TAT.qualityFix);
+    else if (quality === 'DONE' && (facility === 'NOTDONE' || facility === 'DESNAG'))
+                                    deadline = addDays(facDate || qDate || crmDate, TAT.facilityFix);
+    if (deadline && today > deadline) brc++;
   }
-  return { tot, pos, rdy, alert: ovd };
+  return { tot, paid, pos, rdy, alert: brc };
 }
 
 // ─── MELIZMA STATS (same TAT engine as the dashboard) ─────────────
@@ -390,12 +416,14 @@ function melizmaStats(rows) {
     engg: b+4, inspection: b+7, qcheck: b+8, q_date: b+9, facility: b+10, fac_date: b+11 };
 
   const today = today0();
-  let tot=0, pos=0, rdy=0, brc=0;
+  let tot=0, paid=0, pos=0, rdy=0, brc=0;
   for (let i = hi + 1; i < rows.length; i++) {
     const r = rows[i]; if (!r || r.length === 0) continue;
     const name = String(r[CI.customer]||'').trim();
     if (!name || (!isNaN(Number(name)) && name.length < 4)) continue;
     tot++;
+    if (norm(r[CI.crm]) !== 'RECEIVED') continue;   // Payments = CRM status, not row count
+    paid++;
     const crmDate = parseDate(r[CI.crm_date]);
     const accDate = parseDate(r[CI.acc_date]);
     const qDate   = parseDate(r[CI.q_date]);
@@ -419,18 +447,18 @@ function melizmaStats(rows) {
     else if (quality === 'DONE' && facility === 'NOTDONE') deadline = addDays(facDate || qDate || crmDate, TAT.facilityFix);
     if (deadline && today > deadline) brc++;
   }
-  return { tot, pos, rdy, alert: brc };
+  return { tot, paid, pos, rdy, alert: brc };
 }
 
 // ─── LOADERS ──────────────────────────────────────────────────────
 const suite = { lp: null, mz: null };
 
 function paintCard(prefix, s, alertLabelOk, alertLabelBad) {
-  animateNum(prefix+'_tot', s.tot);
+  animateNum(prefix+'_tot', s.paid);
   animateNum(prefix+'_pos', s.pos);
   animateNum(prefix+'_rdy', s.rdy);
   animateNum(prefix + (prefix==='lp'?'_ovd':'_brc'), s.alert);
-  const pct = s.tot ? Math.round(s.pos / s.tot * 100) : 0;
+  const pct = s.paid ? Math.round(s.pos / s.paid * 100) : 0;
   document.getElementById(prefix+'_pct').textContent = pct + '%';
   document.getElementById(prefix+'_bar').style.width = pct + '%';
   setAlert(prefix+'_alert', s.alert, alertLabelOk, s.alert + ' ' + alertLabelBad);
@@ -440,7 +468,7 @@ function paintTotals() {
   const arr = [suite.lp, suite.mz].filter(Boolean);
   if (!arr.length) return;
   const sum = k => arr.reduce((a,s)=>a+s[k],0);
-  animateNum('t_tot', sum('tot'));
+  animateNum('t_tot', sum('paid'));
   animateNum('t_pos', sum('pos'));
   animateNum('t_rdy', sum('rdy'));
   animateNum('t_alr', sum('alert'));
@@ -455,7 +483,7 @@ async function loadLifepark() {
     const rows = Array.isArray(json) ? json : (json.data || json.values);
     if (!Array.isArray(rows)) throw new Error('bad response');
     suite.lp = lifeparkStats(rows);
-    paintCard('lp', suite.lp, 'No engineering overdue', 'flats overdue >10 days');
+    paintCard('lp', suite.lp, 'All stages within TAT', 'flats breached TAT');
     setStat('lp_stat','live','● Live · ' + suite.lp.tot + ' records');
   } catch(e) {
     console.warn('Lifepark load failed:', e.message);
