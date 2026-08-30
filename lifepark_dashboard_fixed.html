@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIFEPARK — Live Possession Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0d14;--s1:#111520;--s2:#161c2a;--bd:#1e2840;--acc:#e8a020;--acc2:#f0c060;--grn:#22c97a;--red:#f04060;--blu:#4080f0;--pur:#9060f0;--org:#f07030;--txt:#dce4f5;--mut:#6070a0}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(232,160,32,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(232,160,32,.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+.page{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:28px 20px 60px}
+
+/* HEADER */
+header{display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:24px;border-bottom:1px solid var(--bd);margin-bottom:28px;flex-wrap:wrap;gap:12px}
+h1{font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;letter-spacing:2px;background:linear-gradient(120deg,var(--acc),var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-transform:uppercase}
+.hsub{color:var(--mut);font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-top:3px}
+.hright{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(34,201,122,.12);border:1px solid rgba(34,201,122,.3);border-radius:20px;padding:5px 14px;font-size:11px;letter-spacing:1px;color:var(--grn);text-transform:uppercase}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--grn);animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.rbtn{background:rgba(232,160,32,.1);border:1px solid rgba(232,160,32,.3);color:var(--acc);border-radius:8px;padding:8px 18px;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s;display:flex;align-items:center;gap:7px}
+.rbtn:hover{background:rgba(232,160,32,.22);border-color:var(--acc)}
+.rbtn:disabled{opacity:.5;cursor:not-allowed}
+.si{display:inline-block;transition:transform .3s}
+.rbtn.spinning .si{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ldate{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;color:var(--acc)}
+.lbl{color:var(--mut);font-size:11px;letter-spacing:2px;text-transform:uppercase}
+.status-line{font-size:11px;padding:4px 12px;border-radius:20px;font-weight:500}
+.st-live{background:rgba(34,201,122,.12);border:1px solid rgba(34,201,122,.25);color:var(--grn)}
+.st-cached{background:rgba(96,112,160,.12);border:1px solid rgba(96,112,160,.25);color:var(--mut)}
+.st-err{background:rgba(240,64,96,.12);border:1px solid rgba(240,64,96,.25);color:var(--red)}
+.countdown{color:var(--mut);font-size:11px;text-align:right}
+
+/* KPI */
+.kgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:28px}
+@media(max-width:1100px){.kgrid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:700px){.kgrid{grid-template-columns:repeat(2,1fr)}}
+.kc{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:18px 14px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s;animation:fu .4s ease both}
+.kc:hover{transform:translateY(-3px);border-color:rgba(232,160,32,.3)}
+.kc.al:hover{border-color:rgba(240,64,96,.4)}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.c1::before{background:var(--blu)}.c2::before{background:var(--pur)}.c3::before{background:var(--grn)}.c4::before{background:var(--acc)}.c5::before{background:var(--org)}.c6::before{background:var(--grn)}.al::before{background:var(--red)}
+.kc:nth-child(1){animation-delay:.05s}.kc:nth-child(2){animation-delay:.1s}.kc:nth-child(3){animation-delay:.15s}.kc:nth-child(4){animation-delay:.2s}.kc:nth-child(5){animation-delay:.25s}.kc:nth-child(6){animation-delay:.3s}.kc:nth-child(7){animation-delay:.35s}
+@keyframes fu{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.ki{font-size:18px;margin-bottom:8px;display:block}
+.kv{font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;line-height:1;margin-bottom:3px;transition:all .4s}
+.c1 .kv{color:var(--blu)}.c2 .kv{color:var(--pur)}.c3 .kv{color:var(--grn)}.c4 .kv{color:var(--acc)}.c5 .kv{color:var(--org)}.c6 .kv{color:var(--grn)}.al .kv{color:var(--red)}
+.kl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);font-weight:600;line-height:1.3}
+.ks{margin-top:9px;padding-top:9px;border-top:1px solid var(--bd);font-size:11px;color:var(--mut)}
+.ks span{color:var(--txt);font-weight:600}
+.pb{margin-top:7px}.prow{display:flex;justify-content:space-between;margin-bottom:3px;font-size:10px;color:var(--mut)}.prow b{color:var(--txt)}
+.pbt{height:3px;background:var(--bd);border-radius:2px;overflow:hidden}.pbf{height:100%;border-radius:2px;transition:width 1s ease}
+
+/* PIPELINE */
+.sbox{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:20px;margin-bottom:20px}
+.stitle{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc);display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.stitle::before{content:'';display:inline-block;width:3px;height:16px;background:var(--acc);border-radius:2px}
+.pipe{display:flex;align-items:center;flex-wrap:wrap}
+.ps{flex:1;min-width:90px;text-align:center;padding:0 5px}
+.psi{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px 8px;transition:border-color .2s}
+.psi:hover{border-color:rgba(232,160,32,.3)}
+.pn{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;transition:all .4s}
+.pl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-top:3px;font-weight:600}
+.pp{font-size:10px;color:var(--mut);margin-top:5px}.pp b{color:var(--txt)}
+.parr{color:var(--bd);font-size:20px;flex-shrink:0;margin:0 -3px}
+
+/* TWO COL */
+.tc{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:900px){.tc{grid-template-columns:1fr}}
+
+/* TABLES */
+.tw{background:var(--s1);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--s2);padding:9px 12px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);font-weight:600;border-bottom:1px solid var(--bd)}
+thead th:first-child{text-align:left}
+tbody tr{border-bottom:1px solid var(--bd);transition:background .15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(232,160,32,.03)}
+tbody td{padding:9px 12px;text-align:center}
+tbody td:first-child{text-align:left;font-weight:700;font-size:14px;color:var(--acc2);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px}
+tfoot td{background:var(--s2);padding:9px 12px;text-align:center;font-weight:700;border-top:2px solid var(--bd)}
+tfoot td:first-child{text-align:left;color:var(--mut);font-size:11px;letter-spacing:1px;text-transform:uppercase}
+.vb{color:var(--blu);font-weight:700}.vg{color:var(--grn);font-weight:700}.vr{color:var(--red);font-weight:700}.va{color:var(--acc);font-weight:700}.vp{color:var(--pur);font-weight:700}.vm{color:var(--mut)}
+
+/* OVERDUE */
+.ow{background:var(--s1);border:1px solid rgba(240,64,96,.25);border-radius:12px;overflow:hidden;margin-bottom:20px;box-shadow:0 0 30px rgba(240,64,96,.05)}
+.oh{background:rgba(240,64,96,.08);padding:12px 18px;border-bottom:1px solid rgba(240,64,96,.2);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.oh h3{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--red)}
+.ocnt{background:var(--red);color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700}
+.si2{background:var(--s2);border:1px solid var(--bd);color:var(--txt);border-radius:6px;padding:6px 12px;font-size:13px;outline:none;font-family:'Barlow',sans-serif;margin-left:auto;width:200px}
+.si2:focus{border-color:rgba(240,64,96,.4)}
+.sc{max-height:400px;overflow-y:auto}
+.sc::-webkit-scrollbar{width:4px}.sc::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+.ot thead th{text-align:left}.ot thead th.r{text-align:right}.ot tbody td.r{text-align:right}
+.ot tbody tr:hover{background:rgba(240,64,96,.04)}
+.db{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700}
+.dc{background:rgba(240,64,96,.2);color:var(--red)}.dw{background:rgba(240,112,48,.2);color:var(--org)}.dm{background:rgba(232,160,32,.2);color:var(--acc)}
+
+/* RECORDS */
+.rw{background:var(--s1);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+.rh{padding:12px 18px;background:var(--s2);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rs{background:var(--s1);border:1px solid var(--bd);color:var(--txt);border-radius:6px;padding:6px 12px;font-size:13px;outline:none;font-family:'Barlow',sans-serif;width:240px}
+.rs:focus{border-color:rgba(232,160,32,.4)}
+.rcnt{color:var(--mut);font-size:12px;margin-left:auto}
+.rsc{max-height:480px;overflow-y:auto}
+.rsc::-webkit-scrollbar{width:4px}.rsc::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+.rt thead{position:sticky;top:0;z-index:2}
+.rt thead th{text-align:left;font-size:10px;white-space:nowrap}
+.rt tbody td{padding:7px 12px;text-align:left}
+.sp{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
+.s0{background:rgba(34,201,122,.15);color:var(--grn)}.s1{background:rgba(240,64,96,.15);color:var(--red)}.s2{background:rgba(232,160,32,.15);color:var(--acc)}.s3{background:rgba(64,128,240,.15);color:var(--blu)}.s4{background:rgba(144,96,240,.15);color:var(--pur)}.s5{background:rgba(96,112,160,.15);color:var(--mut)}
+.fb{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.fb button{background:var(--s2);border:1px solid var(--bd);color:var(--mut);border-radius:6px;padding:5px 13px;font-size:12px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .15s}
+.fb button:hover,.fb button.ac{background:rgba(232,160,32,.1);border-color:var(--acc);color:var(--acc)}
+footer{margin-top:40px;text-align:center;color:var(--mut);font-size:11px;letter-spacing:1px;border-top:1px solid var(--bd);padding-top:20px}
+footer a{color:var(--acc);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div>
+    <h1>LIFEPARK</h1>
+    <div class="hsub">Live Possession Operations Dashboard</div>
+  </div>
+  <div class="hright">
+    <div>
+      <div class="lbl">Last Refreshed</div>
+      <div class="ldate" id="ldate">Loading…</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge"><span class="dot"></span>Google Sheets Live</span>
+      <button class="rbtn" id="rbtn" onclick="doRefresh()"><span class="si">↻</span> Refresh</button>
+    </div>
+    <div class="status-line st-cached" id="statusLine">Initialising…</div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</header>
+
+<div class="kgrid" id="kg"></div>
+
+<div class="sbox">
+  <div class="stitle">Possession Pipeline Flow</div>
+  <div class="pipe" id="pipe"></div>
+</div>
+
+<div class="tc">
+  <div>
+    <div class="stitle" style="margin-bottom:10px">Wing-wise Breakdown</div>
+    <div class="tw"><table id="wt"></table></div>
+  </div>
+  <div>
+    <div class="stitle" style="margin-bottom:10px">Engineering Overdue by Wing</div>
+    <div class="tw" style="padding:18px"><div id="owb"></div></div>
+  </div>
+</div>
+
+<div class="ow">
+  <div class="oh">
+    <h3>⚠ Engineering Overdue (&gt;10 Days from Payment)</h3>
+    <span class="ocnt" id="ocnt">0</span>
+    <input class="si2" type="text" id="os" placeholder="Search name / flat…">
+  </div>
+  <div class="sc">
+    <table class="ot">
+      <thead><tr><th>#</th><th>Customer Name</th><th>Wing</th><th>Flat</th><th>Payment Date</th><th class="r">Days Overdue</th></tr></thead>
+      <tbody id="otb"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="stitle" style="margin-bottom:10px">All Customer Records</div>
+<div class="fb" id="fb"></div>
+<div class="rw">
+  <div class="rh">
+    <input class="rs" type="text" id="rs" placeholder="Search name, flat, wing…">
+    <span class="rcnt" id="rc"></span>
+  </div>
+  <div class="rsc">
+    <table class="rt">
+      <thead><tr><th>#</th><th>Customer Name</th><th>Wing</th><th>Flat</th><th>CRM Payment</th><th>Payment Date</th><th>Account</th><th>Engineering</th><th>Quality</th><th>Facility / Poss.</th></tr></thead>
+      <tbody id="rtb"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>LIFEPARK POSSESSION TRACKER &nbsp;|&nbsp;
+  <a href="https://docs.google.com/spreadsheets/d/1Dx5nUN-T3J8kFSDp91BgwT5WMVQpuW0f/" target="_blank">Open Google Sheet</a>
+  &nbsp;|&nbsp; Auto-refreshes every 5 minutes
+</footer>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────
+const API_URL   = 'https://script.google.com/macros/s/AKfycbxEGcpa9JJEi5Ry3-kM-OiO864h7SRpPaFt4LjgdUASCbZBZgTCw1gm3fBlGD8Twvem/exec';
+const EMBEDDED  = [{"sr":"1","customer":"PRIYA  SAKORE","wing":"A","flat":"207","crm":"RECEIVED","crm_date":"2026-04-04","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":33},{"sr":"2","customer":"NITIN SAHEBRAO PARASKAR","wing":"A","flat":"206","crm":"RECEIVED","crm_date":"2026-04-07","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":30},{"sr":"3","customer":"DARSHANA MALLAPPA CHOUGULE","wing":"A","flat":"403","crm":"RECEIVED","crm_date":"2026-04-15","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":22},{"sr":"4","customer":"SUNIL MADHUKAR PINGLE","wing":"A","flat":"1202","crm":"RECEIVED","crm_date":"2026-04-15","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":22},{"sr":"5","customer":"KUNAL YELBHAR","wing":"A","flat":"1105","crm":"RECEIVED","crm_date":"2026-04-07","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":30},{"sr":"6","customer":"OMKAR AMONE","wing":"A","flat":"508","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":19},{"sr":"7","customer":"VISHAL JADHAV","wing":"A","flat":"408","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"NOTDONE","days":19},{"sr":"8","customer":"GUNVANTRAO PATIL","wing":"A","flat":"608","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":17},{"sr":"9","customer":"PRAVIN AHINAVE","wing":"A","flat":"503","crm":"RECEIVED","crm_date":"2026-04-22","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":15},{"sr":"10","customer":"HANSRAJ SONAWANE","wing":"A","flat":"305","crm":"RECEIVED","crm_date":"2026-04-15","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":22},{"sr":"11","customer":"POOJA SACHIN BARSE","wing":"A","flat":"1404","crm":"RECEIVED","crm_date":"2026-04-22","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":15},{"sr":"12","customer":"SOMIL KUMAR","wing":"A","flat":"107","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"13","customer":"MANISHA RAVINDRA BABAR","wing":"A","flat":"402","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"NOTDONE","days":20},{"sr":"14","customer":"PRIYANKA BORAH","wing":"A","flat":"1403","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"15","customer":"PRIYANKA MEHTA","wing":"A","flat":"1007","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"16","customer":"PRATIBHA SANTOSHKUMAR DAUNDKAR","wing":"A","flat":"504","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"17","customer":"GURUSHARAN HANUMANT SIGARKANTHI","wing":"A","flat":"405","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":10},{"sr":"18","customer":"RATNDIP VINAYAK PATIL","wing":"A","flat":"303","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":10},{"sr":"19","customer":"AMIT ARVIND MEHER","wing":"A","flat":"1103","crm":"RECEIVED","crm_date":"2026-04-25","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":12},{"sr":"20","customer":"SUDHIR HASE","wing":"A","flat":"605","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":7},{"sr":"21","customer":"VIKAS BALASAHEB WALKE","wing":"A","flat":"805","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"22","customer":"JITESH RAJPUT","wing":"A","flat":"308","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"23","customer":"NILESH VISHNU ZAMBRE","wing":"A","flat":"306","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"","days":20},{"sr":"24","customer":"MAHENDRA SHIVAJI KAMBLE","wing":"B","flat":"306","crm":"RECEIVED","crm_date":"2026-04-15","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":22},{"sr":"25","customer":"KUSUM SHIVAJI PATIL","wing":"B","flat":"408","crm":"RECEIVED","crm_date":"2026-04-07","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":30},{"sr":"26","customer":"SHIVAJI MADHAVRAO PATIL","wing":"B","flat":"508","crm":"RECEIVED","crm_date":"2026-04-07","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":30},{"sr":"27","customer":"NIROOP MAHENDRA","wing":"B","flat":"401","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":20},{"sr":"28","customer":"PRUTHVIRAJ BALBHIM KALE","wing":"B","flat":"307","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"29","customer":"VARSHA JADHAV","wing":"B","flat":"1103","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"30","customer":"NEHA RAHUL KUMAR","wing":"B","flat":"207","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":19},{"sr":"31","customer":"SWAPNIL SHESHRAO KULKARNI","wing":"B","flat":"1401","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"32","customer":"PRIYANKA SUSHANT PATIL","wing":"B","flat":"904","crm":"RECEIVED","crm_date":"2026-04-22","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":15},{"sr":"33","customer":"SHAILESH SHASHIKANT SHELAR","wing":"B","flat":"506","crm":"RECEIVED","crm_date":"2026-04-25","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":12},{"sr":"34","customer":"UMESH GULAB KHALADKAR","wing":"B","flat":"203","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":20},{"sr":"35","customer":"JAYSHREE VIVEK VIBHANDIK","wing":"B","flat":"103","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"DONE","facility":"","days":20},{"sr":"36","customer":"DILIP MARATHE","wing":"B","flat":"301","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":8},{"sr":"37","customer":"SUSHANT PATIL","wing":"B","flat":"904","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"38","customer":"DILIP DAYARAM MARATHE","wing":"B","flat":"301","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"39","customer":"ASHISH BHIMASHANKAR ASWALE","wing":"B","flat":"406","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"40","customer":"VISHAL WALUNJ","wing":"B","flat":"1002","crm":"RECEIVED","crm_date":"2026-05-02","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":5},{"sr":"41","customer":"MAYUR ANNASAHEB BARHATE","wing":"B","flat":"1103","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"42","customer":"ASHA MISHRA","wing":"B","flat":"1407","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"43","customer":"ANKIT VIBHUTE","wing":"B","flat":"1007","crm":"RECEIVED","crm_date":"2026-05-03","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":4},{"sr":"44","customer":"SURAJ HAJARE","wing":"B","flat":"304","crm":"RECEIVED","crm_date":"2026-05-04","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":3},{"sr":"45","customer":"ASHOK MARUTI LATE","wing":"B","flat":"1105","crm":"RECEIVED","crm_date":"2026-05-04","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":3},{"sr":"46","customer":"PRASAD NALAWADE","wing":"B","flat":"1307","crm":"RECEIVED","crm_date":"2026-05-04","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":3},{"sr":"47","customer":"SAYALI SWAPNIL MORE","wing":"B","flat":"703","crm":"RECEIVED","crm_date":"2026-05-05","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":2},{"sr":"48","customer":"VISHAL HIRAMAN VALUNJ","wing":"B","flat":"1002","crm":"RECEIVED","crm_date":"2026-05-05","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":2},{"sr":"49","customer":"GANESH KISAN KARCHE","wing":"C","flat":"101","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":24},{"sr":"50","customer":"AMOL PAWAR","wing":"C","flat":"208","crm":"RECEIVED","crm_date":"2026-04-15","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":22},{"sr":"51","customer":"LAXMI MAHALAKSHMAIAH DUGGINENI","wing":"C","flat":"905","crm":"RECEIVED","crm_date":"2026-04-10","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":27},{"sr":"52","customer":"GAURAV UPADHAYA","wing":"C","flat":"205","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":24},{"sr":"53","customer":"SUYASH MAYUR","wing":"C","flat":"105","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":21},{"sr":"54","customer":"SAGAR VANJARI","wing":"C","flat":"307","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":21},{"sr":"55","customer":"NAYAN BHARTI","wing":"C","flat":"708","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":14},{"sr":"56","customer":"ATUL RAUL","wing":"C","flat":"201","crm":"RECEIVED","crm_date":"2026-04-15","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":22},{"sr":"57","customer":"SUCHIT SURENDAR","wing":"C","flat":"508","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":19},{"sr":"58","customer":"LAXMAN UDDHAV DHERE","wing":"C","flat":"204","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":20},{"sr":"59","customer":"DHANSHRI SHAILESH JOSHI","wing":"C","flat":"402","crm":"RECEIVED","crm_date":"2026-04-15","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":22},{"sr":"60","customer":"MANISHA TRIPATHI","wing":"C","flat":"1308","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"61","customer":"SHUBHAM PRADEEP HAWA","wing":"C","flat":"906","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":17},{"sr":"62","customer":"AMARENDRA MOHAPATRA","wing":"C","flat":"805","crm":"RECEIVED","crm_date":"2026-05-01","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":6},{"sr":"63","customer":"SWATI AMTE","wing":"C","flat":"1102","crm":"RECEIVED","crm_date":"2026-05-05","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":2},{"sr":"64","customer":"KUMARI SUCHETA NAYAK","wing":"C","flat":"801","crm":"RECEIVED","crm_date":"2026-05-05","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":2},{"sr":"65","customer":"SAGAR TATYASAHEB KATKAR","wing":"D","flat":"503","crm":"RECEIVED","crm_date":"2026-04-14","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":23},{"sr":"66","customer":"SUBHASHINI JASBINDERSINGH THAKKHI","wing":"D","flat":"1401","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":24},{"sr":"67","customer":"BHUPENDRA ASHOK OZARKAR","wing":"D","flat":"1406","crm":"RECEIVED","crm_date":"2026-04-14","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":23},{"sr":"68","customer":"PRAMILA DHAPAL","wing":"D","flat":"301","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":20},{"sr":"69","customer":"PRAVEEN PATTAN","wing":"D","flat":"305","crm":"RECEIVED","crm_date":"2026-04-14","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":23},{"sr":"70","customer":"AKASH HAJGUDE","wing":"D","flat":"908","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":19},{"sr":"71","customer":"JITENDRA PAGAR","wing":"D","flat":"1405","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":8},{"sr":"72","customer":"KISHOR SAUNDANE","wing":"D","flat":"702","crm":"RECEIVED","crm_date":"2026-04-15","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":22},{"sr":"73","customer":"PRAFULLA GULABRAO BHADANE","wing":"D","flat":"1203","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":17},{"sr":"74","customer":"HIMESH PP","wing":"D","flat":"102","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":17},{"sr":"75","customer":"MAHESH SUKALE","wing":"D","flat":"302","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":21},{"sr":"76","customer":"JITESH DNYANDEO GADGE","wing":"D","flat":"1001","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":21},{"sr":"77","customer":"GANESH ASHOK ZOPE","wing":"D","flat":"605","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":13},{"sr":"78","customer":"PRASHANT PATIL","wing":"D","flat":"706","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"","days":13},{"sr":"79","customer":"PRIYANKA KUMARI","wing":"D","flat":"208","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"","days":19},{"sr":"80","customer":"SUNIL BALIRAM CHAVAN","wing":"D","flat":"105","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"","days":13},{"sr":"81","customer":"SANDEEP CHANDANSHIVE","wing":"D","flat":"1108","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":8},{"sr":"82","customer":"DADASO SHINDE","wing":"D","flat":"308","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"","days":8},{"sr":"83","customer":"NILESH DAYARAM MARATHE","wing":"D","flat":"304","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":8},{"sr":"84","customer":"RASHANT GOPAL PATIL","wing":"D","flat":"706","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"","days":13},{"sr":"85","customer":"PRADEEP MHASKE","wing":"D","flat":"303","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":7},{"sr":"86","customer":"SHOBHA TAMBE","wing":"D","flat":"601","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"87","customer":"ASHA PAWAR","wing":"D","flat":"1407","crm":"RECEIVED","crm_date":"2026-04-25","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":12},{"sr":"88","customer":"SACHIN JIRGE","wing":"D","flat":"508","crm":"RECEIVED","crm_date":"2026-05-04","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":3},{"sr":"89","customer":"VILAS SADASHIV KARACHE","wing":"E","flat":"201","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":24},{"sr":"90","customer":"ARCHANA RAMDAS WAGH","wing":"E","flat":"701","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":24},{"sr":"91","customer":"SATISH CHAUDHAR","wing":"E","flat":"1002","crm":"RECEIVED","crm_date":"2026-04-11","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"","days":26},{"sr":"92","customer":"SUNITA RAMJI VISHWAKARMA","wing":"E","flat":"1304","crm":"RECEIVED","crm_date":"2026-04-10","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":27},{"sr":"93","customer":"SATISH KESARKAR","wing":"E","flat":"808","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":21},{"sr":"94","customer":"ANIKET GHOLAP","wing":"E","flat":"1201","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":16},{"sr":"95","customer":"PRATIK POKHARKAR","wing":"E","flat":"302","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":17},{"sr":"96","customer":"BHUSHAN BHIDE","wing":"E","flat":"405","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":19},{"sr":"97","customer":"KISHOR GAIKWAD","wing":"E","flat":"404","crm":"RECEIVED","crm_date":"2026-04-22","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":15},{"sr":"98","customer":"GAURAV HIWASE","wing":"E","flat":"502","crm":"RECEIVED","crm_date":"2026-04-22","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":15},{"sr":"99","customer":"VIKRAM HINGNE","wing":"E","flat":"501","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":16},{"sr":"100","customer":"KANHAIYALAL MOHANRAO BIRARIS","wing":"E","flat":"1206","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":16},{"sr":"101","customer":"SUNITA KATE","wing":"E","flat":"301","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":21},{"sr":"102","customer":"Yogesh patil","wing":"E","flat":"401","crm":"RECEIVED","crm_date":"2026-04-19","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":18},{"sr":"103","customer":"HRUSHIKESH SHANKAR MORE","wing":"E","flat":"207","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"104","customer":"BHIMAGONDA PATIL","wing":"E","flat":"902","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"105","customer":"MANISHA RAMDAS KHUTAL","wing":"E","flat":"705","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":19},{"sr":"106","customer":"VIDYA KUMARI","wing":"E","flat":"805","crm":"RECEIVED","crm_date":"2026-04-25","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":12},{"sr":"107","customer":"AKSHAY SHANKAR GAYKAR","wing":"E","flat":"1203","crm":"RECEIVED","crm_date":"2026-04-25","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":12},{"sr":"108","customer":"RUSHIKESH BALASAHEB SHINDE","wing":"E","flat":"304","crm":"RECEIVED","crm_date":"2026-04-25","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":12},{"sr":"109","customer":"CHETNA NAVNATH GUTTE","wing":"E","flat":"1208","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":10},{"sr":"110","customer":"JYOTI YOGESH GAIKWAD","wing":"E","flat":"803","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":16},{"sr":"111","customer":"Babasaheb NAVALE","wing":"E","flat":"306","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":7},{"sr":"112","customer":"MANOJ KUMAR","wing":"E","flat":"608","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":8},{"sr":"113","customer":"MAYUR ANAND GAIKWAD","wing":"E","flat":"1103","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":8},{"sr":"114","customer":"PRANITA MANOHAR GIRIDHAR","wing":"E","flat":"1404","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":8},{"sr":"115","customer":"VINAY GIte","wing":"E","flat":"504","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":10},{"sr":"116","customer":"AJAY SHASHIKANT DESALE","wing":"E","flat":"1403","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"117","customer":"JITENDRA DAYARAM MARATHE","wing":"E","flat":"305","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":7},{"sr":"118","customer":"KAVITA JAGDISH LAHIRE","wing":"E","flat":"1402","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"119","customer":"YOGESH GAIKWAD","wing":"E","flat":"803","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"120","customer":"Vikrant Lokhande","wing":"E","flat":"1301","crm":"RECEIVED","crm_date":"2026-05-02","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":5},{"sr":"121","customer":"JAYESH SUNIL JADHAV","wing":"E","flat":"908","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"122","customer":"RAJENDRA BHAURAO PATIL","wing":"E","flat":"901","crm":"RECEIVED","crm_date":"2026-05-02","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":5},{"sr":"123","customer":"ANIKET MACHHINDRA GHOLAP","wing":"E","flat":"1201","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":16},{"sr":"124","customer":"RUSHIKESH BALASAHEB SHINDE","wing":"E","flat":"304","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":10},{"sr":"125","customer":"PRAVIN SINARE","wing":"E","flat":"903","crm":"RECEIVED","crm_date":"2026-05-04","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":3},{"sr":"126","customer":"PRAVIN SHANTARAM GUNJAL","wing":"E","flat":"1005","crm":"RECEIVED","crm_date":"2026-05-02","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":5},{"sr":"127","customer":"VISHAL KUMAR SINHA","wing":"F","flat":"208","crm":"RECEIVED","crm_date":"2026-04-04","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"DONE","days":33},{"sr":"128","customer":"SANDEEP PANDURANG SHEWALE","wing":"F","flat":"401","crm":"RECEIVED","crm_date":"2026-04-04","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"DONE","days":33},{"sr":"129","customer":"RUPALI SWAPNIL PATIL","wing":"F","flat":"205","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":24},{"sr":"130","customer":"KALPANA PRAKASH MORE","wing":"F","flat":"305","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"","days":24},{"sr":"131","customer":"SUNIL VINAYAK PATIL","wing":"F","flat":"507","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":24},{"sr":"132","customer":"NIRMALA BAIRAGI","wing":"F","flat":"203","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"133","customer":"ASHIWINI MAHINDRA","wing":"F","flat":"706","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"","days":20},{"sr":"134","customer":"BHARAT RAJGIRE","wing":"F","flat":"1001","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"135","customer":"URMILA HARSHAL CHAUDHARI","wing":"F","flat":"303","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":19},{"sr":"136","customer":"KARAN RAVAL","wing":"F","flat":"1003","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"137","customer":"MANGESH PATIL","wing":"F","flat":"606","crm":"RECEIVED","crm_date":"2026-04-22","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":15},{"sr":"138","customer":"PANKAJ MAHINDRE","wing":"F","flat":"1306","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":16},{"sr":"139","customer":"VIRAL JOSHI","wing":"F","flat":"403","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":20},{"sr":"140","customer":"SNEHAL NITN CHAVAN","wing":"F","flat":"705","crm":"RECEIVED","crm_date":"2026-05-01","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":6},{"sr":"141","customer":"ANURAG YOGESH JHA","wing":"F","flat":"108","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":19},{"sr":"142","customer":"PRANAV BHARAT TOPLE","wing":"F","flat":"307","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":10},{"sr":"143","customer":"AVINASH SAKHARAM CHAVAN","wing":"F","flat":"707","crm":"RECEIVED","crm_date":"2026-04-25","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":12},{"sr":"144","customer":"KISHAN RAMDAS GADEKAR","wing":"F","flat":"801","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"145","customer":"SUMIT PANDURANG DATE","wing":"F","flat":"1006","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"146","customer":"ARCHANA SINGH GHATE","wing":"F","flat":"1008","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"147","customer":"ADRIJA VARDEYESHWAS NJ","wing":"F","flat":"1403","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"148","customer":"SHWETA ASHOK TELANG(BEFORE MARRIAGE)","wing":"F","flat":"1404","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"149","customer":"RANI ANIL DHOTRE","wing":"F","flat":"502","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":8},{"sr":"150","customer":"PRITAM BHAMBURE","wing":"F","flat":"1204","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"151","customer":"SANJAY SIDDHNATH SINGH","wing":"F","flat":"908","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"152","customer":"PAWAN RAMESH KULKARNI","wing":"F","flat":"402","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":9},{"sr":"153","customer":"SANGHARAJ PRAKASH JAGTAP","wing":"F","flat":"1101","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"154","customer":"RINKU RAJENDRA KADAM","wing":"F","flat":"1107","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"155","customer":"UMESH ASHOK DENGLE","wing":"F","flat":"1405","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"156","customer":"VISHAL RAMNATH BHASKAR","wing":"F","flat":"404","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":7},{"sr":"157","customer":"ALOK NARENDRA PATIL","wing":"F","flat":"1302","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"158","customer":"POOJA SARKAR MONDAL","wing":"F","flat":"906","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"159","customer":"SAVITA ABHIJEET BHOSALE","wing":"F","flat":"1005","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"160","customer":"KAUSTUBH SATISH KULKARNI","wing":"F","flat":"207","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"161","customer":"SIDDHESH SATISH KULKARNI","wing":"F","flat":"202","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"162","customer":"AJAY SINGH","wing":"F","flat":"1108","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"163","customer":"MONIKA KUDALE","wing":"F","flat":"1203","crm":"RECEIVED","crm_date":"2026-04-26","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":11},{"sr":"164","customer":"PRANITEE ATUL SONDEKAR","wing":"G","flat":"1403","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":21},{"sr":"165","customer":"MANOJ MADHUKAR MAHADIK","wing":"G","flat":"1105","crm":"RECEIVED","crm_date":"2026-02-01","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":95},{"sr":"166","customer":"ANITA BHOSALE","wing":"G","flat":"902","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"167","customer":"MANISHA SHINDE","wing":"G","flat":"1408","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":19},{"sr":"168","customer":"ABHAY DHALKARI","wing":"G","flat":"605","crm":"RECEIVED","crm_date":"2026-04-15","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":22},{"sr":"169","customer":"SHASHIKANT NIPANIKAR","wing":"G","flat":"402","crm":"RECEIVED","crm_date":"2026-04-22","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":15},{"sr":"170","customer":"RAJARAM NIVRUTTI PALVE","wing":"G","flat":"702","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"171","customer":"SUNIL DAWANGE","wing":"G","flat":"707","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":21},{"sr":"172","customer":"PRATIKSHA TUKARAMJI DESHMUKH","wing":"G","flat":"808","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"173","customer":"SAKET SINHA","wing":"G","flat":"202","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"174","customer":"K K TIWARI","wing":"G","flat":"608","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":17},{"sr":"175","customer":"SANTOSH SHIRISKAR","wing":"G","flat":"1101","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"176","customer":"Prashant supekar","wing":"G","flat":"203","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":21},{"sr":"177","customer":"SANKET KHANKHEDKAR","wing":"G","flat":"404","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":24},{"sr":"178","customer":"ASHADEVI MARUTI DURGUDE","wing":"G","flat":"1104","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"179","customer":"SAVITA MAHANTESH GOKAVI","wing":"G","flat":"502","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"180","customer":"SOMNATH RETAWADE","wing":"G","flat":"1305","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"181","customer":"VISHAL BIRAJDAR","wing":"G","flat":"401","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":17},{"sr":"182","customer":"ROHAN BHARTI","wing":"G","flat":"405","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":17},{"sr":"183","customer":"SURAJ KOLE","wing":"G","flat":"303","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":16},{"sr":"184","customer":"VAISHALI SHANKAR GAWANDE","wing":"G","flat":"408","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":14},{"sr":"185","customer":"VINOD BALARAM NALAVADE","wing":"G","flat":"806","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"186","customer":"VIBHAKAR SINHA","wing":"G","flat":"1205","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"187","customer":"PRABHAKAR SINHA","wing":"G","flat":"1206","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":8},{"sr":"188","customer":"ROHIN VENKATARAMAN IYER","wing":"G","flat":"1108","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"189","customer":"REKHABAI DIPAK PATIL","wing":"G","flat":"1404","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"190","customer":"ANKUSH KOKITKAR","wing":"G","flat":"1006","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"191","customer":"NANDKUMAR SHINDE","wing":"G","flat":"607","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"192","customer":"Nikhil More","wing":"G","flat":"1106","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":10},{"sr":"193","customer":"SWATI INGALE","wing":"H","flat":"201","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":21},{"sr":"194","customer":"SNEHAL A NANKAR","wing":"H","flat":"1001","crm":"RECEIVED","crm_date":"2026-02-01","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":95},{"sr":"195","customer":"VINAYAK JADHAV","wing":"H","flat":"706","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"196","customer":"SUNITA RAMCHANDRA JAWALE","wing":"H","flat":"1101","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":19},{"sr":"197","customer":"SAKSHI SANTOSH GAWADE","wing":"H","flat":"402","crm":"RECEIVED","crm_date":"2026-04-15","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":22},{"sr":"198","customer":"RAVIJA PINGALE","wing":"H","flat":"1008","crm":"RECEIVED","crm_date":"2026-04-22","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":15},{"sr":"199","customer":"AMBAR CHAVAN","wing":"H","flat":"807","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"200","customer":"SHIVKUMAR PATIL","wing":"H","flat":"604","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":21},{"sr":"201","customer":"GAUTAM RANE","wing":"H","flat":"805","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"202","customer":"AMOL BIRARI","wing":"H","flat":"1307","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"203","customer":"AVINASH GAGARE","wing":"H","flat":"705","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"204","customer":"PRITAM SONTAKKE","wing":"H","flat":"1205","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"205","customer":"NAKUL TAYADE","wing":"H","flat":"407","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":21},{"sr":"206","customer":"Vaishali Soham Deshmukh","wing":"H","flat":"505","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"","days":24},{"sr":"207","customer":"Priyanka Vijay Patil","wing":"H","flat":"601","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"208","customer":"GANESHRAM KHIVAJI CHAUDHARY","wing":"H","flat":"302","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"209","customer":"PRAMOD LAXMAN PARVE","wing":"H","flat":"708","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"210","customer":"MILIND PRAKASH SHINGOTE","wing":"H","flat":"1106","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"211","customer":"SARVESH MAHESHWAR NIKAMBE","wing":"H","flat":"1201","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"212","customer":"SANJIVANI DILIPRAO JOGDAND","wing":"H","flat":"1405","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":16},{"sr":"213","customer":"RAJSHREE TUSHAR KOHINKAR","wing":"H","flat":"1408","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"214","customer":"AMBAR MUKESH CHAVAN","wing":"H","flat":"807","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"215","customer":"ASHOK DYANDEV VETAL","wing":"H","flat":"801","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"216","customer":"RAJAT M KANGUTKAR","wing":"H","flat":"1404","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":8},{"sr":"217","customer":"ASHWINI PANDURANG GOSAVI","wing":"H","flat":"308","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"218","customer":"AMIT KUMAR","wing":"H","flat":"1107","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"219","customer":"MONIKA","wing":"H","flat":"1108","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"220","customer":"ATUL GANPAT BHAVASAR","wing":"H","flat":"1302","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"221","customer":"LAXMAN DATTATRAY KUMBHAR","wing":"H","flat":"202","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":10},{"sr":"222","customer":"VINAYAK DAMODAR JADHAV","wing":"H","flat":"706","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"223","customer":"Chandrakant Gadge","wing":"H","flat":"903","crm":"RECEIVED","crm_date":"2026-05-05","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":2},{"sr":"224","customer":"PANDURANG GOSAVI","wing":"H","flat":"308","crm":"RECEIVED","crm_date":"2026-05-05","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":2},{"sr":"225","customer":"KOMAL PRAKASH DHANAWADE","wing":"I","flat":"706","crm":"RECEIVED","crm_date":"2026-04-08","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":29},{"sr":"226","customer":"RAJESH LOKHANDE","wing":"I","flat":"503","crm":"RECEIVED","crm_date":"2026-04-09","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":28},{"sr":"227","customer":"PUNEET M SHARMA","wing":"I","flat":"209","crm":"RECEIVED","crm_date":"2026-04-13","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":24},{"sr":"228","customer":"KISHORDAS MANILAL SAUPURE","wing":"I","flat":"905","crm":"RECEIVED","crm_date":"2026-03-16","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":52},{"sr":"229","customer":"VIJAY TALEKAR","wing":"I","flat":"1406","crm":"RECEIVED","crm_date":"2026-03-16","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":52},{"sr":"230","customer":"PALLAVI THAKARE","wing":"I","flat":"208","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":20},{"sr":"231","customer":"PRATIK ZAMBRE","wing":"I","flat":"605","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"232","customer":"LAXMAN JANJIRE","wing":"I","flat":"407","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":21},{"sr":"233","customer":"VAIBHAV NIKAM","wing":"I","flat":"502","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":16},{"sr":"234","customer":"UMESH DEORE","wing":"I","flat":"703","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"POSSDONE","days":20},{"sr":"235","customer":"EKNATH GADE","wing":"I","flat":"802","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":14},{"sr":"236","customer":"KUSHBOO JARIWALA","wing":"I","flat":"409","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"237","customer":"KUSHBOO JARIWALA","wing":"I","flat":"509","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"238","customer":"SIDDHANT PATEL","wing":"I","flat":"1409","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":16},{"sr":"239","customer":"SHRIRAM RAJDEKAR","wing":"I","flat":"309","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"240","customer":"VAIBHAV VARPE","wing":"I","flat":"207","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":17},{"sr":"241","customer":"AMIT PAWAR","wing":"I","flat":"1003","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"242","customer":"AJIT KHOT","wing":"I","flat":"708","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"243","customer":"KALAVATI KISHOR SALVE","wing":"I","flat":"506","crm":"RECEIVED","crm_date":"2026-05-02","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":5},{"sr":"244","customer":"MAHADU KOLE","wing":"I","flat":"406","crm":"RECEIVED","crm_date":"2026-05-02","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":5},{"sr":"245","customer":"SWAPNIL JADHAV","wing":"I","flat":"1005","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"246","customer":"MANISHA V YELE","wing":"I","flat":"301","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":16},{"sr":"247","customer":"NIKHIL DEVIDAS BHALERAO","wing":"I","flat":"1101","crm":"RECEIVED","crm_date":"2026-04-21","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":16},{"sr":"248","customer":"ANUP DUDHE","wing":"I","flat":"707","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":19},{"sr":"249","customer":"GOUTHAMI SRINIVASARAO TULASI","wing":"I","flat":"303","crm":"RECEIVED","crm_date":"2026-04-16","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":21},{"sr":"250","customer":"SUJATA PATIL","wing":"I","flat":"1309","crm":"RECEIVED","crm_date":"2026-05-02","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":5},{"sr":"251","customer":"ABHIJEET JADHAV","wing":"I","flat":"1402","crm":"RECEIVED","crm_date":"2026-04-17","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":20},{"sr":"252","customer":"AJAY MOHAN SANKPAL","wing":"I","flat":"501","crm":"RECEIVED","crm_date":"2026-04-20","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":17},{"sr":"253","customer":"SHITAL LAXMAN SHINDE","wing":"I","flat":"806","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"DONE","quality":"","facility":"","days":10},{"sr":"254","customer":"MANISHA RAJENDRA BORSE","wing":"I","flat":"907","crm":"RECEIVED","crm_date":"2026-04-24","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":13},{"sr":"255","customer":"SHRIVALLABH MAKRAND JOSHI","wing":"I","flat":"1109","crm":"RECEIVED","crm_date":"2026-04-22","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":15},{"sr":"256","customer":"VIJAY EKNATH TALEKAR","wing":"I","flat":"1303","crm":"RECEIVED","crm_date":"2026-04-25","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":12},{"sr":"257","customer":"BHAGYASHRI NIVRUTTI PATIL","wing":"I","flat":"1403","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":10},{"sr":"258","customer":"DWARKANATH BHAUSAHEB RAUT","wing":"I","flat":"305","crm":"RECEIVED","crm_date":"2026-04-28","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":9},{"sr":"259","customer":"MANDAKINI NAMDEV JADHAV","wing":"I","flat":"702","crm":"RECEIVED","crm_date":"2026-04-29","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":8},{"sr":"260","customer":"KIRAN KISAN TAVHARE","wing":"I","flat":"1006","crm":"RECEIVED","crm_date":"2026-05-02","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":5},{"sr":"261","customer":"KALAVATI KISHOR SALVE","wing":"I","flat":"506","crm":"RECEIVED","crm_date":"2026-04-18","account":"RECEIVED","engg":"DONE","quality":"DONE","facility":"READY","days":19},{"sr":"262","customer":"VARSHA PRATIK MANDE","wing":"I","flat":"201","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"263","customer":"SACHIN TANAJI KHARAT","wing":"I","flat":"1105","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"264","customer":"PRADNYA RAHUL TAMBE","wing":"I","flat":"1408","crm":"RECEIVED","crm_date":"2026-04-30","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":7},{"sr":"265","customer":"SACHIN KHARAT","wing":"I","flat":"1105","crm":"RECEIVED","crm_date":"2026-04-23","account":"RECEIVED","engg":"NOTDONE","quality":"","facility":"","days":14},{"sr":"266","customer":"AKSHAY ASHOK SAKPAL","wing":"I","flat":"801","crm":"RECEIVED","crm_date":"2026-04-27","account":"RECEIVED","engg":"DONE","quality":"PENDING","facility":"","days":10},{"sr":"267","customer":"VINAYAK VITHOBA KUYATE","wing":"C","flat":"501","crm":"RECEIVED","crm_date":"2026-05-05","account":"RECEIVED","engg":"","quality":"","facility":"","days":2},{"sr":"268","customer":"MADHURI PRASHANT PATIL","wing":"C","flat":"802","crm":"RECEIVED","crm_date":"2026-05-04","account":"RECEIVED","engg":"","quality":"","facility":"","days":3},{"sr":"269","customer":"PRANALI TUSHAR WARADE","wing":"C","flat":"607","crm":"RECEIVED","crm_date":"2026-05-02","account":"","engg":"","quality":"","facility":"","days":5},{"sr":"270","customer":"GUNJAL SANJAY BHADU","wing":"E","flat":"1307","crm":"RECEIVED","crm_date":"2026-04-25","account":"","engg":"","quality":"","facility":"","days":12},{"sr":"271","customer":"VISHAL PRAMOD BHAVSAR","wing":"E","flat":"907","crm":"RECEIVED","crm_date":"2026-05-07","account":"","engg":"","quality":"","facility":"","days":0},{"sr":"272","customer":"SOMANATH DADA THITAME","wing":"E","flat":"804","crm":"RECEIVED","crm_date":"2026-05-06","account":"","engg":"","quality":"","facility":"","days":1},{"sr":"273","customer":"PRAVIN DEVENDRA SINGH","wing":"A","flat":"1307","crm":"RECEIVED","crm_date":"2026-05-04","account":"","engg":"","quality":"","facility":"","days":3},{"sr":"274","customer":"JAGDISH DESHMUKH","wing":"E","flat":"1001","crm":"RECEIVED","crm_date":"2026-05-07","account":"","engg":"","quality":"","facility":"","days":0},{"sr":"275","customer":"NRUSHINHPRALHADRAO GORE","wing":"G","flat":"1207","crm":"RECEIVED","crm_date":"2026-05-06","account":"","engg":"","quality":"","facility":"","days":1},{"sr":"276","customer":"DEEPAK NARAYAN SABALE","wing":"A","flat":"1003","crm":"RECEIVED","crm_date":"2026-05-06","account":"","engg":"","quality":"","facility":"","days":1},{"sr":"277","customer":"JITENDRA MOHAN SONI","wing":"D","flat":"903","crm":"RECEIVED","crm_date":"2026-05-06","account":"","engg":"","quality":"","facility":"","days":1},{"sr":"278","customer":"AMOL KASHINATH SHINDE","wing":"G","flat":"501","crm":"RECEIVED","crm_date":"2026-05-07","account":"","engg":"","quality":"","facility":"","days":0},{"sr":"279","customer":"MONIKA","wing":"D","flat":"807","crm":"RECEIVED","crm_date":"2026-05-02","account":"","engg":"","quality":"","facility":"","days":5},{"sr":"280","customer":"TRUPTI HEMAND MANDLIK","wing":"E","flat":"1408","crm":"RECEIVED","crm_date":"02-Mau-26","account":"","engg":"","quality":"","facility":"","days":null},{"sr":"281","customer":"SHITAL VIJAY NAVALE","wing":"B","flat":"308","crm":"RECEIVED","crm_date":"07-Mau-26","account":"","engg":"","quality":"","facility":"","days":null},{"sr":"282","customer":"AJAY YASHWANT CHAVAN","wing":"C","flat":"1208","crm":"RECEIVED","crm_date":"2026-05-05","account":"","engg":"","quality":"","facility":"","days":2},{"sr":"283","customer":"DHIRAJ GOKULLAL JAISWAL","wing":"B","flat":"805","crm":"RECEIVED","crm_date":"2026-05-07","account":"","engg":"","quality":"","facility":"","days":0},{"sr":"284","customer":"SAYALI SWAPNIL MORE","wing":"B","flat":"703","crm":"RECEIVED","crm_date":"2026-05-05","account":"","engg":"","quality":"","facility":"","days":2},{"sr":"285","customer":"KUNAL RAJENDRA KURHADE","wing":"A","flat":"1207","crm":"RECEIVED","crm_date":"2026-05-05","account":"","engg":"","quality":"","facility":"","days":2},{"sr":"286","customer":"PRAVIN BHAUSAHEB KHILARI","wing":"H","flat":"1208","crm":"RECEIVED","crm_date":"2026-04-28","account":"","engg":"","quality":"","facility":"","days":9},{"sr":"287","customer":"AYODHYA MADHAVRAO GHOGARE","wing":"B","flat":"1107","crm":"RECEIVED","crm_date":"2026-05-05","account":"","engg":"","quality":"","facility":"","days":2}];
+const WINGS     = ['A','B','C','D','E','F','G','H','I'];
+const REFRESH_MS= 5 * 60 * 1000; // 5 minutes
+
+let allRecs = [], allOvd = [], activeWing = 'All';
+let nextRefresh = Date.now() + REFRESH_MS;
+let isRefreshing = false;
+
+// ─── HELPERS ──────────────────────────────────────────────────────
+function pill(v) {
+  if (!v) return '<span class="sp s5">—</span>';
+  const m = {RECEIVED:'s0',DONE:'s0',NOTDONE:'s1',PENDING:'s2',POSSDONE:'s3',READY:'s4'};
+  const l = {RECEIVED:'Received',DONE:'Done',NOTDONE:'Not Done',PENDING:'Pending',POSSDONE:'Poss Done',READY:'Ready'};
+  return `<span class="sp ${m[v]||'s5'}">${l[v]||v}</span>`;
+}
+
+function fmtDate(s) {
+  if (!s || s==='null') return '—';
+  try { return new Date(s).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+  catch(e) { return s; }
+}
+
+function setStatus(type, msg) {
+  const el = document.getElementById('statusLine');
+  el.className = `status-line st-${type}`;
+  el.textContent = msg;
+}
+
+// ─── PARSE APPS SCRIPT RESPONSE ───────────────────────────────────
+// Robustly auto-detects column positions from header row
+function parseAppsData(rows) {
+  if (!rows || rows.length === 0) return null;
+
+  // ── Step 1: Find header row ──
+  let hi = -1;
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const upper = rows[i].map(c => String(c || '').toUpperCase());
+    if (upper.some(c => c.includes('CUSTOMER') || c.includes('NAME'))) {
+      hi = i; break;
+    }
+  }
+  if (hi < 0) { console.warn('parseAppsData: No header row found'); return null; }
+
+  // ── Step 2: Map column names → indices ──
+  const hdr = rows[hi].map(c => String(c || '').trim().toUpperCase().replace(/\s+/g,'_'));
+  const col = name => {
+    // Try exact match first, then partial match
+    let idx = hdr.findIndex(h => h === name);
+    if (idx < 0) idx = hdr.findIndex(h => h.includes(name));
+    return idx;
+  };
+
+  // Column aliases – add more if your sheet headers differ
+  const CI = {
+    sr:       col('SR') >= 0 ? col('SR') : col('S.NO') >= 0 ? col('S.NO') : 0,
+    customer: col('CUSTOMER') >= 0 ? col('CUSTOMER') : col('NAME'),
+    wing:     col('WING'),
+    flat:     col('FLAT'),
+    crm:      col('CRM') >= 0 ? col('CRM') : col('CRM_PAYMENT'),
+    crm_date: col('CRM_DATE') >= 0 ? col('CRM_DATE') : col('PAYMENT_DATE') >= 0 ? col('PAYMENT_DATE') : col('DATE'),
+    account:  col('ACCOUNT'),
+    engg:     col('ENGG') >= 0 ? col('ENGG') : col('ENGINEERING'),
+    quality:  col('QUALITY'),
+    facility: col('FACILITY'),
+  };
+
+  console.log('Column map detected:', CI);
+  console.log('Header row:', hdr);
+
+  // Fallback to fixed positions if header detection fails
+  if (CI.customer < 0) CI.customer = 1;
+  if (CI.wing     < 0) CI.wing     = 2;
+  if (CI.flat     < 0) CI.flat     = 3;
+  if (CI.crm      < 0) CI.crm      = 4;
+  if (CI.crm_date < 0) CI.crm_date = 5;
+  if (CI.account  < 0) CI.account  = 6;
+  if (CI.engg     < 0) CI.engg     = 7;
+  if (CI.quality  < 0) CI.quality  = 8;
+  if (CI.facility < 0) CI.facility = 9;
+
+  // ── Step 3: Normalise status values ──
+  function norm(v) {
+    if (v === null || v === undefined || v === '') return '';
+    const s = String(v).trim().toUpperCase().replace(/\s+/g,'');
+    if (s === 'DONE')                   return 'DONE';
+    if (s === 'NOTDONE' || s === 'NOT_DONE' || s === 'PENDING_ENG') return 'NOTDONE';
+    if (s === 'POSSDONE' || s === 'POSSESSION_DONE') return 'POSSDONE';
+    if (s === 'READY')                  return 'READY';
+    if (s === 'PENDING')                return 'PENDING';
+    if (s.includes('RECEIVED'))         return 'RECEIVED';
+    if (s.includes('NOTDONE'))          return 'NOTDONE';
+    if (s.includes('POSSDONE'))         return 'POSSDONE';
+    return s;
+  }
+
+  // ── Step 4: Parse dates robustly ──
+  function parseDate(raw) {
+    if (!raw && raw !== 0) return { date: null, str: '' };
+    const s = String(raw).trim();
+
+    // Fix common typos: "Mau" → "May", "Jan" normalisation, etc.
+    const fixed = s
+      .replace(/\bMau\b/gi, 'May')
+      .replace(/\bMar\b/gi, 'Mar')
+      .replace(/(\d{2})-([A-Za-z]{3})-(\d{2})$/, (_, d, m, y) => `${d}-${m}-20${y}`);
+
+    // Try direct parsing
+    let d = new Date(fixed);
+    if (!isNaN(d.getTime()) && d.getFullYear() > 2000) {
+      return { date: d, str: d.toISOString().split('T')[0] };
+    }
+
+    // Try DD-Mon-YYYY or DD/MM/YYYY
+    const parts = fixed.match(/^(\d{1,2})[\/\-\.](\w{2,9})[\/\-\.](\d{2,4})$/);
+    if (parts) {
+      d = new Date(`${parts[2]} ${parts[1]}, ${parts[3].length===2?'20'+parts[3]:parts[3]}`);
+      if (!isNaN(d.getTime()) && d.getFullYear() > 2000)
+        return { date: d, str: d.toISOString().split('T')[0] };
+    }
+
+    // Try Excel/Sheets date serial number
+    const n = parseFloat(raw);
+    if (!isNaN(n) && n > 40000 && n < 60000) {
+      const d2 = new Date((n - 25569) * 86400 * 1000);
+      return { date: d2, str: d2.toISOString().split('T')[0] };
+    }
+
+    console.warn('Could not parse date:', raw);
+    return { date: null, str: String(raw) };
+  }
+
+  // ── Step 5: Build records ──
+  const records = [];
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  for (let i = hi + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.length === 0) continue;
+
+    const name = String(r[CI.customer] || '').trim();
+    if (!name || name === '' || (!isNaN(Number(name)) && name.length < 4)) continue;
+
+    const { date: crmDate, str: crmStr } = parseDate(r[CI.crm_date]);
+    const days = crmDate ? Math.floor((today - crmDate) / 86400000) : null;
+
+    records.push({
+      sr:       String(r[CI.sr] !== undefined ? r[CI.sr] : i - hi).replace(/\.0$/, ''),
+      customer: name,
+      wing:     String(r[CI.wing] || '').trim().toUpperCase(),
+      flat:     String(r[CI.flat] || '').replace(/\.0$/, ''),
+      crm:      norm(r[CI.crm]),
+      crm_date: crmStr,
+      account:  norm(r[CI.account]),
+      engg:     norm(r[CI.engg]),
+      quality:  norm(r[CI.quality]),
+      facility: norm(r[CI.facility]),
+      days:     days,
+    });
+  }
+
+  console.log(`parseAppsData: parsed ${records.length} records from ${rows.length - hi - 1} data rows`);
+  return records;
+}
+
+// ─── FETCH FROM APPS SCRIPT ───────────────────────────────────────
+// Strategy 1: JSONP (bypasses CORS entirely — works for public Apps Scripts)
+function fetchViaJsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = '__lp_cb_' + Date.now();
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      cleanup(); reject(new Error('JSONP timeout'));
+    }, 12000);
+    function cleanup() { clearTimeout(timer); delete window[cb]; script.remove(); }
+    window[cb] = data => { cleanup(); resolve(data); };
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+    script.onerror = () => { cleanup(); reject(new Error('JSONP script error')); };
+    document.head.appendChild(script);
+  });
+}
+
+// Strategy 2: Direct fetch (works if Apps Script has correct CORS)
+async function fetchDirect(url) {
+  const res = await fetch(url, { cache: 'no-cache', mode: 'cors' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Strategy 3: CORS proxy fallback
+async function fetchViaProxy(url) {
+  const proxies = [
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  ];
+  for (const proxy of proxies) {
+    try {
+      const res = await fetch(proxy, { cache: 'no-cache' });
+      if (!res.ok) continue;
+      return await res.json();
+    } catch(e) { continue; }
+  }
+  throw new Error('All proxy attempts failed');
+}
+
+function normaliseJson(json) {
+  if (Array.isArray(json)) return json;
+  if (json && Array.isArray(json.data))   return json.data;
+  if (json && Array.isArray(json.values)) return json.values;
+  throw new Error('Unexpected response format');
+}
+
+async function fetchLive() {
+  // Try each strategy in order
+  const strategies = [
+    { name: 'direct',  fn: () => fetchDirect(API_URL) },
+    { name: 'jsonp',   fn: () => fetchViaJsonp(API_URL) },
+    { name: 'proxy',   fn: () => fetchViaProxy(API_URL) },
+  ];
+
+  let lastErr;
+  for (const s of strategies) {
+    try {
+      setStatus('cached', `⟳ Trying ${s.name} fetch…`);
+      const json = await s.fn();
+      console.log(`fetchLive: succeeded via ${s.name}`);
+      return normaliseJson(json);
+    } catch(e) {
+      console.warn(`fetchLive [${s.name}] failed:`, e.message);
+      lastErr = e;
+    }
+  }
+  throw new Error(`All fetch strategies failed. Last error: ${lastErr?.message}`);
+}
+
+// ─── REFRESH ──────────────────────────────────────────────────────
+async function doRefresh() {
+  if (isRefreshing) return;
+  isRefreshing = true;
+  const btn = document.getElementById('rbtn');
+  btn.classList.add('spinning'); btn.disabled = true;
+  setStatus('cached', '⟳ Connecting to Google Sheets…');
+
+  try {
+    const rows = await fetchLive();
+    const recs = parseAppsData(rows);
+    if (!recs || recs.length === 0) throw new Error('No records parsed');
+
+    render(recs);
+    const now = new Date();
+    document.getElementById('ldate').textContent =
+      now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' · ' +
+      now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    setStatus('live', `✓ Live — ${recs.length} records from Google Sheets`);
+    nextRefresh = Date.now() + REFRESH_MS;
+  } catch(e) {
+    console.error('Live fetch failed:', e);
+    setStatus('err', `⚠ ${e.message || 'Could not reach Google Sheet'} — showing last data`);
+  }
+
+  btn.classList.remove('spinning'); btn.disabled = false;
+  isRefreshing = false;
+}
+
+// ─── RENDER DASHBOARD ─────────────────────────────────────────────
+function render(records) {
+  allRecs = records;
+  allOvd  = records.filter(r => r.engg === 'NOTDONE' && r.days > 10).sort((a,b) => b.days - a.days);
+
+  const tot = records.length;
+  const crm = records.filter(r => r.crm === 'RECEIVED').length;
+  const acc = records.filter(r => r.account === 'RECEIVED').length;
+  const eng = records.filter(r => r.engg === 'DONE').length;
+  const qua = records.filter(r => r.quality === 'DONE').length;
+  const fac = records.filter(r => ['DONE','POSSDONE','READY'].includes(r.facility)).length;
+  const pos = records.filter(r => r.facility === 'POSSDONE').length;
+  const qp  = records.filter(r => r.quality === 'PENDING').length;
+  const fr  = records.filter(r => r.facility === 'READY').length;
+  const end = records.filter(r => r.engg === 'NOTDONE').length;
+
+  // ── KPI CARDS ──
+  const kg = document.getElementById('kg'); kg.innerHTML = '';
+  [
+    {cls:'c1',icon:'💰',v:crm,    lbl:'CRM Payment\nReceived',  sub:`of ${tot} total`,             col:'var(--blu)',pct:Math.round(crm/tot*100||0)},
+    {cls:'c2',icon:'🏦',v:acc,    lbl:'Account\nConfirmed',     sub:`of ${crm} CRM received`,      col:'var(--pur)',pct:crm?Math.round(acc/crm*100):0},
+    {cls:'c3',icon:'🔧',v:eng,    lbl:'Engg Work\nDone',        sub:`${end} still pending`,        col:'var(--grn)',pct:Math.round(eng/tot*100||0)},
+    {cls:'c4',icon:'✅',v:qua,    lbl:'Quality\nChecked',       sub:`${qp} pending review`,        col:'var(--acc)',pct:Math.round(qua/tot*100||0)},
+    {cls:'c5',icon:'🏢',v:fac,    lbl:'Facility\nCleared',      sub:`Incl. Ready & Done`,            col:'var(--org)',pct:Math.round(fac/tot*100||0)},
+    {cls:'c6',icon:'🎉',v:pos,    lbl:'Possession\nDone',       sub:`${fr} ready to handover`,     col:'var(--grn)',pct:Math.round(pos/tot*100||0)},
+    {cls:'al',icon:'⚠️',v:allOvd.length,lbl:'Engg Overdue\n>10 Days',sub:'Needs immediate action',col:'var(--red)',pct:null},
+  ].forEach(k => {
+    const d = document.createElement('div');
+    d.className = `kc ${k.cls}`;
+    const prog = k.pct !== null
+      ? `<div class="pb"><div class="prow"><span>Completion</span><b>${k.pct}%</b></div><div class="pbt"><div class="pbf" style="width:${k.pct}%;background:${k.col}"></div></div></div>`
+      : '';
+    d.innerHTML = `<span class="ki">${k.icon}</span><div class="kv">${k.v}</div><div class="kl">${k.lbl.replace('\n','<br>')}</div><div class="ks"><span>${k.sub}</span></div>${prog}`;
+    kg.appendChild(d);
+  });
+
+  // ── PIPELINE ──
+  const pe = document.getElementById('pipe'); pe.innerHTML = '';
+  [
+    {l:'CRM\nReceived',    v:crm, c:'var(--blu)'},
+    {l:'Account\nConfirmed',v:acc,c:'var(--pur)'},
+    {l:'Engg\nDone',       v:eng, c:'var(--grn)'},
+    {l:'Quality\nChecked', v:qua, c:'var(--acc)'},
+    {l:'Facility\nReady',  v:fac, c:'var(--org)'},
+    {l:'Possession\nDone', v:pos, c:'var(--grn)'},
+  ].forEach((s,i) => {
+    const pct = i===0 ? 100 : (crm ? Math.round(s.v/crm*100) : 0);
+    const d = document.createElement('div'); d.className='ps';
+    d.innerHTML = `<div class="psi"><div class="pn" style="color:${s.c}">${s.v}</div><div class="pl">${s.l.replace('\n','<br>')}</div><div class="pp"><b>${pct}%</b> of pipeline</div></div>`;
+    pe.appendChild(d);
+    if (i < 5) { const a=document.createElement('div');a.className='parr';a.textContent='›';pe.appendChild(a); }
+  });
+
+  // ── WING TABLE ──
+  const ws = {};
+  records.forEach(r => {
+    if (!r.wing) return;
+    if (!ws[r.wing]) ws[r.wing] = {t:0,c:0,a:0,ed:0,en:0,q:0,p:0};
+    ws[r.wing].t++;
+    if (r.crm==='RECEIVED')      ws[r.wing].c++;
+    if (r.account==='RECEIVED')  ws[r.wing].a++;
+    if (r.engg==='DONE')         ws[r.wing].ed++;
+    if (r.engg==='NOTDONE')      ws[r.wing].en++;
+    if (r.quality==='DONE')      ws[r.wing].q++;
+    if (r.facility==='POSSDONE') ws[r.wing].p++;
+  });
+  let T={t:0,c:0,a:0,ed:0,en:0,q:0,p:0};
+  let wh = `<thead><tr><th>Wing</th><th>Total</th><th>CRM Paid</th><th>Account</th><th>Engg Done</th><th>Pending</th><th>Quality</th><th>Poss Done</th></tr></thead><tbody>`;
+  WINGS.filter(w=>ws[w]).forEach(w => {
+    const d=ws[w]; Object.keys(T).forEach(k=>T[k]+=d[k]||0);
+    wh += `<tr><td>Wing ${w}</td><td class="vb">${d.t}</td><td class="vg">${d.c}</td><td class="vp">${d.a}</td><td class="vg">${d.ed}</td><td class="${d.en>0?'vr':'vm'}">${d.en}</td><td class="va">${d.q}</td><td class="vb">${d.p}</td></tr>`;
+  });
+  wh += `</tbody><tfoot><tr><td>TOTAL</td><td class="vb">${T.t}</td><td class="vg">${T.c}</td><td class="vp">${T.a}</td><td class="vg">${T.ed}</td><td class="vr">${T.en}</td><td class="va">${T.q}</td><td class="vb">${T.p}</td></tr></tfoot>`;
+  document.getElementById('wt').innerHTML = wh;
+
+  // ── OVERDUE BY WING BAR ──
+  const om = {};
+  allOvd.forEach(o => { om[o.wing] = (om[o.wing]||0)+1; });
+  const mx = Math.max(...Object.values(om), 1);
+  document.getElementById('owb').innerHTML =
+    WINGS.filter(w=>om[w]).sort((a,b)=>om[b]-om[a]).map(w =>
+      `<div style="margin-bottom:11px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;color:var(--acc2)">Wing ${w}</span>
+          <span style="color:var(--red);font-weight:700;font-size:13px">${om[w]} flats</span>
+        </div>
+        <div style="height:6px;background:var(--bd);border-radius:3px;overflow:hidden">
+          <div style="width:${Math.round(om[w]/mx*100)}%;height:100%;background:linear-gradient(90deg,var(--red),var(--org));border-radius:3px"></div>
+        </div>
+      </div>`
+    ).join('') || '<div style="color:var(--mut);text-align:center;padding:20px">No overdue flats 🎉</div>';
+
+  document.getElementById('ocnt').textContent = allOvd.length;
+
+  // ── FILTER BUTTONS ──
+  const fb = document.getElementById('fb'); fb.innerHTML='';
+  ['All', ...WINGS.filter(w=>ws[w])].forEach(w => {
+    const b = document.createElement('button');
+    b.textContent = w==='All' ? 'All Wings' : `Wing ${w}`;
+    if (w===activeWing) b.classList.add('ac');
+    b.onclick = () => {
+      document.querySelectorAll('.fb button').forEach(x=>x.classList.remove('ac'));
+      b.classList.add('ac'); activeWing=w; renderRecs();
+    };
+    fb.appendChild(b);
+  });
+
+  renderOvd(); renderRecs();
+}
+
+// ─── OVERDUE TABLE ────────────────────────────────────────────────
+function renderOvd(f='') {
+  const rows = allOvd.filter(o =>
+    !f || o.customer.toLowerCase().includes(f) ||
+    String(o.flat).includes(f) || o.wing.toLowerCase().includes(f)
+  );
+  document.getElementById('otb').innerHTML = rows.map((o,i) => {
+    const cls = o.days > 30 ? 'dc' : o.days > 20 ? 'dc' : o.days > 14 ? 'dw' : 'dm';
+    return `<tr>
+      <td style="color:var(--mut)">${i+1}</td>
+      <td style="font-weight:500">${o.customer}</td>
+      <td><span style="background:rgba(232,160,32,.1);color:var(--acc);border-radius:4px;padding:2px 7px;font-weight:700;font-size:12px">Wing ${o.wing}</span></td>
+      <td style="font-weight:600">${o.flat}</td>
+      <td style="color:var(--mut);font-size:12px">${fmtDate(o.crm_date)}</td>
+      <td class="r"><span class="db ${cls}">${o.days}d</span></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--mut);padding:20px">No matching records</td></tr>`;
+}
+
+// ─── ALL RECORDS TABLE ────────────────────────────────────────────
+function renderRecs() {
+  const s = (document.getElementById('rs').value||'').toLowerCase();
+  const rows = allRecs.filter(r => {
+    const mw = activeWing==='All' || r.wing===activeWing;
+    const ms = !s || r.customer.toLowerCase().includes(s) || String(r.flat).includes(s) || r.wing.toLowerCase().includes(s);
+    return mw && ms;
+  });
+  document.getElementById('rc').textContent = `${rows.length} records`;
+  document.getElementById('rtb').innerHTML = rows.map((r,i) => `<tr>
+    <td style="color:var(--mut);font-size:11px">${i+1}</td>
+    <td style="font-weight:500;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.customer}">${r.customer}</td>
+    <td><span style="color:var(--acc2);font-weight:700">Wing ${r.wing}</span></td>
+    <td style="font-weight:600">${r.flat}</td>
+    <td>${pill(r.crm)}</td>
+    <td style="color:var(--mut);font-size:11px;white-space:nowrap">${fmtDate(r.crm_date)}</td>
+    <td>${pill(r.account)}</td>
+    <td>${pill(r.engg)}</td>
+    <td>${pill(r.quality)}</td>
+    <td>${pill(r.facility)}</td>
+  </tr>`).join('');
+}
+
+// ─── COUNTDOWN TIMER ──────────────────────────────────────────────
+setInterval(() => {
+  const rem = Math.max(0, Math.round((nextRefresh - Date.now()) / 1000));
+  const m = Math.floor(rem/60), s = rem%60;
+  const el = document.getElementById('countdown');
+  if (el) el.textContent = rem > 0 ? `Next auto-refresh in ${m}:${String(s).padStart(2,'0')}` : '';
+  if (rem === 0 && !isRefreshing) { nextRefresh = Date.now() + REFRESH_MS; doRefresh(); }
+}, 1000);
+
+// ─── EVENTS ───────────────────────────────────────────────────────
+document.getElementById('os').addEventListener('input', e => renderOvd(e.target.value.toLowerCase()));
+document.getElementById('rs').addEventListener('input', renderRecs);
+
+// ─── INIT ─────────────────────────────────────────────────────────
+// 1. Show embedded data immediately (instant, no flicker)
+render(EMBEDDED);
+const now = new Date();
+document.getElementById('ldate').textContent =
+  now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' · ' +
+  now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+setStatus('cached', `Showing embedded data — fetching live…`);
+
+// 2. Immediately try to fetch live data from Apps Script
+doRefresh();
+</script>
+</body>
+</html>
