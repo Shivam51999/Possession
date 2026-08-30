@@ -206,7 +206,7 @@ footer{text-align:center;color:#4a525b;font-size:12px;padding:26px 20px;border-t
         <div class="alertline al-ok" id="mz_alert" style="display:none"></div>
         <div class="cfoot">
           <a class="open" id="mz_link" href="melizma_possession_dashboard.html">Open Melizma Dashboard <span class="arrow">→</span></a>
-          <div class="cnote">TAT: Account 24h · Engg 7d · Quality fix 3d · Facility fix 2d</div>
+          <div class="cnote">TAT: Account 48h · Engg 7d · Quality fix 3d · Facility fix 2d</div>
         </div>
       </div>
 
@@ -233,7 +233,7 @@ const MZ_API_URL   = 'https://script.google.com/macros/s/AKfycbxOfwctWV4ehc_roei
 const MZ_SHEET_ID  = '1N2-7dMKSvbX9hIrddrdOLXUFzzFu8Q8KI70WMn3cmWo';
 const MZ_SHEET_NAME= '';
 const REFRESH_MS   = 5 * 60 * 1000;
-const TAT = { account: 1, engg: 7, qualityFix: 3, facilityFix: 2 };
+const TAT = { account: 2, engg: 7, qualityFix: 3, facilityFix: 2 };
 
 document.getElementById('lp_link').href = LINKS.lifepark;
 document.getElementById('mz_link').href = LINKS.melizma;
@@ -371,9 +371,13 @@ function melizmaStats(rows) {
     if (ci >= 0 && fi >= 0) { hi = i; custCol = ci; flatCol = fi; break; }
   }
   if (hi < 0) throw new Error('header not found');
+  const hdrU = (rows[hi]||[]).map(c => String(c||'').toUpperCase());
+  const towerCol = hdrU.findIndex(c => c.includes('TOWER') || c.includes('BLDG') || c.includes('BUILDING'));
+  let b = flatCol + 1;
+  if (towerCol === flatCol + 1) b = flatCol + 2;
   const CI = { customer: custCol,
-    crm: flatCol+1, crm_date: flatCol+2, account: flatCol+3, acc_date: flatCol+4,
-    engg: flatCol+5, quality: flatCol+8, q_date: flatCol+9, facility: flatCol+10, fac_date: flatCol+11 };
+    crm: b, crm_date: b+1, account: b+2, acc_date: b+3,
+    engg: b+4, quality: b+7, q_date: b+8, facility: b+9, fac_date: b+10 };
 
   const today = today0();
   let tot=0, pos=0, rdy=0, brc=0;
