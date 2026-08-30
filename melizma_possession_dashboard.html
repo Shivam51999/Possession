@@ -66,6 +66,30 @@ header{display:flex;align-items:flex-end;justify-content:space-between;padding:3
 .pb{margin-top:7px}.prow{display:flex;justify-content:space-between;margin-bottom:3px;font-size:11px;color:#525a63}.prow b{color:var(--txt)}
 .pbt{height:4px;background:#efefef;border-radius:2px;overflow:hidden}.pbf{height:100%;border-radius:2px;transition:width 1s ease}
 
+/* DATE FILTER BAR */
+.dbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:12px 16px;margin-bottom:20px}
+.dlabel{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#3d444d;font-weight:700;margin-right:2px}
+.dpre{display:flex;gap:6px;flex-wrap:wrap}
+.dpre button{background:#fff;border:1px solid #d9dde2;color:#2c3238;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s}
+.dpre button:hover,.dpre button.ac{background:var(--red);border-color:var(--red);color:#fff}
+.dinp{border:1px solid #d9dde2;border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit;color:#2c3238;background:#fff}
+.dto{font-size:12px;color:#525a63}
+.dapply{background:#1b1e23;border:none;color:#fff;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.dapply:hover{opacity:.85}
+.dshow{margin-left:auto;font-size:12px;color:#3d444d;font-weight:600}
+
+/* CEO SUMMARY */
+.ceosec{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#3d444d;font-weight:800;margin:16px 0 10px;padding-top:14px;border-top:1px dashed #e2e2e2}
+.ceosec:first-of-type{border-top:none;padding-top:0;margin-top:4px}
+.ceogrid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+@media(max-width:1100px){.ceogrid{grid-template-columns:repeat(2,1fr)}}
+.ct{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:16px 12px;text-align:center}
+.ctv{font-size:26px;font-weight:800;line-height:1.1;color:#15181d}
+.ctv small{font-size:14px;font-weight:700;color:#525a63}
+.ctl{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#3d444d;font-weight:700;margin-top:7px;line-height:1.4}
+.cts{font-size:11.5px;color:#525a63;margin-top:6px}
+.cts b{color:#15181d}
+
 /* SECTION BOXES */
 .sbox{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:20px;margin-bottom:20px}
 .stitle{display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:2.5px;font-weight:800;color:#1b1e23;text-transform:uppercase;margin-bottom:16px}
@@ -156,7 +180,7 @@ footer a{color:var(--red)}
   <div>
     <div class="eyebrow">Mangalam HQ · Melizma · Kiwale</div>
     <div class="htitle">Live <span class="r">possession</span> pipeline.</div>
-    <div class="hsub">Payment → Account (24h) → Engineering (7d) → Quality (fix 3d) → Facility (fix 2d) → Handover</div>
+    <div class="hsub">Payment → Account (48h) → Engineering (7d) → Quality (fix 3d) → Facility (fix 2d) → Handover</div>
   </div>
   <div class="hright">
     <div style="text-align:right">
@@ -169,7 +193,29 @@ footer a{color:var(--red)}
   </div>
 </header>
 
+<div class="dbar">
+  <span class="dlabel">Period</span>
+  <div class="dpre" id="dpre"></div>
+  <input type="date" id="dfrom" class="dinp">
+  <span class="dto">to</span>
+  <input type="date" id="dto" class="dinp">
+  <button class="dapply" onclick="applyCustomRange()">Apply</button>
+  <span class="dshow" id="dshow"></span>
+</div>
+
 <div class="kgrid" id="kg"></div>
+
+<div class="sbox">
+  <div class="stitle" style="margin-bottom:4px">CEO Summary Report</div>
+  <div style="font-size:12px;color:#525a63;margin-bottom:14px">Recomputed on every refresh · respects the period filter above</div>
+  <div class="ceosec">Department Activity — Selected Period</div>
+  <div class="ceogrid" id="ceoAct"></div>
+  <div class="ceosec">Average Cycle Times — Customers Who Paid in Period</div>
+  <div class="ceogrid" id="ceo"></div>
+  <div class="ceosec">Pipeline Health</div>
+  <div class="ceogrid" id="ceoHealth"></div>
+  <div id="ceoTower"></div>
+</div>
 
 <div class="sbox">
   <div class="stitle">Possession Pipeline Flow (with TAT)</div>
@@ -225,7 +271,7 @@ footer a{color:var(--red)}
   </div>
   <div class="rsc">
     <table class="rt">
-      <thead><tr><th>#</th><th>Customer Name</th><th>Flat</th><th>CRM Payment</th><th>Account</th><th>Engineering</th><th>Delay</th><th>Quality</th><th>Facility / Poss.</th></tr></thead>
+      <thead><tr><th>#</th><th>Customer Name</th><th>Tower</th><th>Flat</th><th>CRM Payment</th><th>Account</th><th>Engineering</th><th>Delay</th><th>Quality</th><th>Facility / Poss.</th></tr></thead>
       <tbody id="rtb"></tbody>
     </table>
   </div>
@@ -233,7 +279,7 @@ footer a{color:var(--red)}
 
 <footer>MANGALAM MELIZMA POSSESSION TRACKER &nbsp;|&nbsp;
   <a href="https://docs.google.com/spreadsheets/d/1N2-7dMKSvbX9hIrddrdOLXUFzzFu8Q8KI70WMn3cmWo/" target="_blank">Open Google Sheet</a>
-  &nbsp;|&nbsp; Auto-refreshes every 5 minutes &nbsp;|&nbsp; TAT: Account 24h · Engg 7d · Quality fix 3d · Facility fix 2d
+  &nbsp;|&nbsp; Auto-refreshes every 5 minutes &nbsp;|&nbsp; TAT: Account 48h · Engg 7d · Quality fix 3d · Facility fix 2d
 </footer>
 </div>
 
@@ -246,13 +292,14 @@ const REFRESH_MS = 5 * 60 * 1000;
 
 // TAT rules (days)
 const TAT = {
-  account:     1,  // Account confirms within 24 hrs of CRM payment entry
+  account:     2,  // Account confirms within 48 hrs of CRM payment entry
   engg:        7,  // Engineering completes flat within 7 days of account confirmation
   qualityFix:  3,  // If Quality finds an issue, Engineering gets 3 days
   facilityFix: 2,  // If Facility finds an issue, Engineering gets 2 days
 };
 
 let allRecs = [], allOvd = [], activeFilter = 'All';
+let rawRecs = [], filterFrom = null, filterTo = null, activePreset = 'All Time';
 let nextRefresh = Date.now() + REFRESH_MS;
 let isRefreshing = false;
 
@@ -336,18 +383,22 @@ function parseRows(rows) {
 
   const hdr = rows[hi].map(c => String(c||'').toUpperCase());
   const srCol = hdr.findIndex(c => c.includes('SR'));
+  const towerCol = hdr.findIndex(c => c.includes('TOWER') || c.includes('BLDG') || c.includes('BUILDING'));
 
-  // Positional map after FLAT column
+  // Positional map after FLAT (and TOWER, if it sits right after FLAT)
+  let base = flatCol + 1;
+  if (towerCol === flatCol + 1) base = flatCol + 2;
   const CI = {
     sr:       srCol >= 0 ? srCol : 0,
     customer: custCol,
     flat:     flatCol,
-    crm:      flatCol + 1,  crm_date: flatCol + 2,
-    account:  flatCol + 3,  acc_date: flatCol + 4,
-    engg:     flatCol + 5,  engg_date: flatCol + 6,
-    delay:    flatCol + 7,
-    quality:  flatCol + 8,  q_date:   flatCol + 9,
-    facility: flatCol + 10, fac_date: flatCol + 11,
+    tower:    towerCol,
+    crm:      base,     crm_date: base + 1,
+    account:  base + 2, acc_date: base + 3,
+    engg:     base + 4, engg_date: base + 5,
+    delay:    base + 6,
+    quality:  base + 7, q_date:   base + 8,
+    facility: base + 9, fac_date: base + 10,
   };
   console.log('Header row', hi, '— column map:', CI);
 
@@ -366,20 +417,33 @@ function parseRows(rows) {
     const qDate    = parseDate(r[CI.q_date]);
     const facDate  = parseDate(r[CI.fac_date]);
 
+    // Sanitize DELAY: sheet formulas can leak date serials (e.g. 46263) — reject anything that isn't a sane day count
+    let delay = String(r[CI.delay] !== undefined && r[CI.delay] !== null ? r[CI.delay] : '').trim();
+    const dn = parseFloat(delay);
+    if (delay && (isNaN(dn) || dn < 0 || dn > 900 || /^Date\(/.test(delay))) delay = '';
+
     const rec = {
       sr:       String(r[CI.sr] !== undefined && r[CI.sr] !== null ? r[CI.sr] : records.length+1).replace(/\.0$/,''),
       customer: name,
       flat:     String(r[CI.flat] || '').replace(/\.0$/,''),
+      tower:    CI.tower >= 0 ? String(r[CI.tower] || '').replace(/\.0$/,'').trim() : '',
       crm:      norm(r[CI.crm]),
       account:  norm(r[CI.account]),
       engg:     norm(r[CI.engg]),
       quality:  norm(r[CI.quality]),
       facility: norm(r[CI.facility]),
-      delay:    String(r[CI.delay] || '').trim(),
+      delay,
       crmDate, accDate, enggDate, qDate, facDate,
       days: crmDate ? Math.floor((today - crmDate) / 86400000) : null,
     };
     computeTat(rec, today);
+    // If the sheet gave no usable delay, derive engineering delay from the TAT engine
+    if (!rec.delay && crmDate) {
+      const engBase = accDate || addDays(crmDate, TAT.account);
+      const engDeadline = addDays(engBase, TAT.engg);
+      const engEnd = rec.engg === 'DONE' ? enggDate : today;
+      if (engEnd && engEnd > engDeadline) rec.delay = String(Math.floor((engEnd - engDeadline)/86400000));
+    }
     records.push(rec);
   }
   console.log(`parseRows: parsed ${records.length} records`);
@@ -547,7 +611,8 @@ async function doRefresh() {
     const recs = parseRows(rows);
     if (!recs || recs.length === 0) throw new Error('No records parsed — check sheet headers');
 
-    render(recs);
+    rawRecs = recs;
+    applyDateFilter(false);
     const now = new Date();
     document.getElementById('ldate').textContent =
       now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' · ' +
@@ -583,7 +648,7 @@ function render(records) {
   const kg = document.getElementById('kg'); kg.innerHTML = '';
   [
     {cls:'c1',icon:'💰',v:crm, lbl:'CRM Payment\nReceived',  sub:`of ${tot} total`,          col:'var(--blu)',pct:Math.round(crm/tot*100||0)},
-    {cls:'c2',icon:'🏦',v:acc, lbl:'Account\nConfirmed',     sub:`TAT 24 hrs`,               col:'var(--pur)',pct:crm?Math.round(acc/crm*100):0},
+    {cls:'c2',icon:'🏦',v:acc, lbl:'Account\nConfirmed',     sub:`TAT 48 hrs`,               col:'var(--pur)',pct:crm?Math.round(acc/crm*100):0},
     {cls:'c3',icon:'🔧',v:eng, lbl:'Engg Work\nDone',        sub:`${end} pending · TAT 7d`,  col:'var(--grn)',pct:crm?Math.round(eng/crm*100):0},
     {cls:'c4',icon:'✅',v:qua, lbl:'Quality\nChecked',       sub:`${qp} issues pending`,     col:'var(--acc)',pct:crm?Math.round(qua/crm*100):0},
     {cls:'c5',icon:'🏢',v:fac, lbl:'Facility\nCleared',      sub:`Incl. Ready & Done`,       col:'var(--org)',pct:crm?Math.round(fac/crm*100):0},
@@ -603,7 +668,7 @@ function render(records) {
   const pe = document.getElementById('pipe'); pe.innerHTML = '';
   [
     {l:'CRM\nReceived',     v:crm, c:'var(--blu)', t:'Start'},
-    {l:'Account\nConfirmed',v:acc, c:'var(--pur)', t:'24 hrs'},
+    {l:'Account\nConfirmed',v:acc, c:'var(--pur)', t:'48 hrs'},
     {l:'Engg\nDone',        v:eng, c:'var(--grn)', t:'7 days'},
     {l:'Quality\nChecked',  v:qua, c:'var(--acc)', t:'fix: 3 days'},
     {l:'Facility\nCleared', v:fac, c:'var(--org)', t:'fix: 2 days'},
@@ -619,7 +684,7 @@ function render(records) {
   // ── TAT COMPLIANCE TABLE ──
   const today = today0();
   const stages = [
-    { name:'Account Confirmation', tat:'24 hrs',
+    { name:'Account Confirmation', tat:'48 hrs',
       done: r => (r.account==='RECEIVED'||r.account==='DONE') && r.crmDate,
       onTime: r => !r.accDate || Math.floor((r.accDate - r.crmDate)/86400000) <= TAT.account,
       overdue: r => r.stage==='Account Confirmation' && r.breached },
@@ -680,6 +745,7 @@ function render(records) {
     fb.appendChild(b);
   });
 
+  renderCeo(records);
   renderCharts(records);
   renderOvd(); renderRecs();
 }
@@ -763,6 +829,172 @@ function renderCharts(records) {
   });
 }
 
+
+
+// ─── DATE FILTER (period selector) ────────────────────────────────
+const PRESETS = ['All Time','Last 7 Days','Last 30 Days','This Month','Last Month','This FY'];
+function fmtInp(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function presetRange(p) {
+  const t = today0();
+  switch (p) {
+    case 'Last 7 Days':  return [addDays(t,-6), t];
+    case 'Last 30 Days': return [addDays(t,-29), t];
+    case 'This Month':   return [new Date(t.getFullYear(), t.getMonth(), 1), t];
+    case 'Last Month':   return [new Date(t.getFullYear(), t.getMonth()-1, 1), new Date(t.getFullYear(), t.getMonth(), 0)];
+    case 'This FY': { // Indian FY: 1 Apr – 31 Mar
+      const fyStart = t.getMonth() >= 3 ? new Date(t.getFullYear(),3,1) : new Date(t.getFullYear()-1,3,1);
+      return [fyStart, t];
+    }
+    default: return [null, null];
+  }
+}
+function buildPresetButtons() {
+  const box = document.getElementById('dpre'); box.innerHTML = '';
+  PRESETS.forEach(p => {
+    const b = document.createElement('button');
+    b.textContent = p;
+    if (p === activePreset) b.classList.add('ac');
+    b.onclick = () => {
+      activePreset = p;
+      [filterFrom, filterTo] = presetRange(p);
+      document.getElementById('dfrom').value = filterFrom ? fmtInp(filterFrom) : '';
+      document.getElementById('dto').value   = filterTo   ? fmtInp(filterTo)   : '';
+      buildPresetButtons();
+      applyDateFilter(true);
+    };
+    box.appendChild(b);
+  });
+}
+function applyCustomRange() {
+  const f = document.getElementById('dfrom').value;
+  const t = document.getElementById('dto').value;
+  filterFrom = f ? new Date(f + 'T00:00:00') : null;
+  filterTo   = t ? new Date(t + 'T00:00:00') : null;
+  activePreset = (filterFrom || filterTo) ? '' : 'All Time';
+  buildPresetButtons();
+  applyDateFilter(true);
+}
+function inRange(d) {
+  if (!filterFrom && !filterTo) return true;
+  if (!d) return false;
+  if (filterFrom && d < filterFrom) return false;
+  if (filterTo && d > filterTo) return false;
+  return true;
+}
+function applyDateFilter(announce) {
+  const noFilter = !filterFrom && !filterTo;
+  const filtered = noFilter ? rawRecs : rawRecs.filter(r => inRange(r.crmDate));
+  const show = document.getElementById('dshow');
+  if (show) show.textContent = noFilter
+    ? `Showing all time · ${rawRecs.length} customers`
+    : `${filterFrom ? fmtDate(filterFrom) : 'Start'} → ${filterTo ? fmtDate(filterTo) : 'Today'} · ${filtered.length} of ${rawRecs.length} customers`;
+  render(filtered);
+}
+
+// ─── CEO SUMMARY ──────────────────────────────────────────────────
+function avgDays(pairs) {
+  const v = pairs.filter(p => p[0] && p[1])
+    .map(p => (p[1] - p[0]) / 86400000)
+    .filter(x => x >= 0 && x < 400);
+  if (!v.length) return { avg: null, n: 0 };
+  return { avg: v.reduce((a,b)=>a+b,0) / v.length, n: v.length };
+}
+function fmtDur(x) {
+  if (x === null) return '—';
+  if (x < 1) return Math.round(x * 24) + '<small> hrs</small>';
+  return x.toFixed(1) + '<small> days</small>';
+}
+function renderCeo(records) {
+  const el = document.getElementById('ceo');
+  if (!el) return;
+  const today = today0();
+  const tile = (v, l, s) => `<div class="ct"><div class="ctv">${v}</div><div class="ctl">${l}</div><div class="cts">${s}</div></div>`;
+
+  // ── A) DEPARTMENT ACTIVITY in the selected period (each dept measured by its own dates) ──
+  const src = rawRecs.length ? rawRecs : records;
+  const actPay = src.filter(r => r.crm === 'RECEIVED' && (( !filterFrom && !filterTo) ? true : inRange(r.crmDate))).length;
+  const actAcc = src.filter(r => (r.account==='RECEIVED'||r.account==='DONE') && inRange(r.accDate)).length;
+  const actEng = src.filter(r => r.engg === 'DONE' && inRange(r.enggDate)).length;
+  const actQc  = src.filter(r => r.quality === 'DONE' && inRange(r.qDate)).length;
+  const actPos = src.filter(r => r.facility === 'POSSDONE' && inRange(r.facDate)).length;
+  document.getElementById('ceoAct').innerHTML =
+    tile(actPay, 'Payments Received', 'CRM entries in period') +
+    tile(actAcc, 'Account Confirmations', 'confirmed in period') +
+    tile(actEng, 'Engineering Completions', 'flats finished in period') +
+    tile(actQc,  'Quality Checks Passed', 'QC done in period') +
+    tile(actPos, 'Possessions Handed Over', 'handovers in period');
+
+  // ── B) CYCLE TIMES (cohort = filtered records) ──
+  const tot  = records.length;
+  const paid = records.filter(r => r.crm === 'RECEIVED').length;
+  const paidPct = tot ? Math.round(paid / tot * 100) : 0;
+  const accConf = records.filter(r => (r.account === 'RECEIVED' || r.account === 'DONE'));
+  const acc = avgDays(accConf.map(r => [r.crmDate, r.accDate]));
+  const accWithin = accConf.filter(r => r.crmDate && r.accDate &&
+    (r.accDate - r.crmDate) / 86400000 <= TAT.account).length;
+  const accWithinPct = acc.n ? Math.round(accWithin / acc.n * 100) : null;
+  const eng = avgDays(records.filter(r => r.engg === 'DONE').map(r => [r.accDate || r.crmDate, r.enggDate]));
+  const eq  = avgDays(records.filter(r => r.quality === 'DONE').map(r => [r.accDate || r.crmDate, r.qDate]));
+  const e2e = avgDays(records.filter(r => r.facility === 'POSSDONE').map(r => [r.crmDate, r.facDate]));
+  el.innerHTML =
+    tile(`${paid}<small> / ${tot}</small>`, 'Customers Paid', `<b>${paidPct}%</b> of total customers`) +
+    tile(fmtDur(acc.avg), 'Avg Account Confirmation', accWithinPct === null ? 'No confirmations yet' : `<b>${accWithinPct}%</b> within 48-hr TAT · ${acc.n} confirmed`) +
+    tile(fmtDur(eng.avg), 'Avg Engineering Completion', eng.n ? `Account confirm → flat done · <b>${eng.n}</b> flats` : 'No completions yet') +
+    tile(fmtDur(eq.avg), 'Engineering → Quality Confirmed', eq.n ? `Work start → QC passed · <b>${eq.n}</b> flats` : 'No QC confirmations yet') +
+    tile(fmtDur(e2e.avg), 'Payment → Possession', e2e.n ? `End-to-end cycle · <b>${e2e.n}</b> handovers` : 'No handovers yet');
+
+  // ── C) PIPELINE HEALTH ──
+  const done = records.filter(r => r.facility === 'POSSDONE').length;
+  const rdy  = records.filter(r => r.facility === 'READY' || r.facility === 'DONE').length;
+  const backlog = paid - done;
+  const inProg = records.filter(r => r.crmDate && r.facility !== 'POSSDONE');
+  const waits = inProg.map(r => r.days).filter(x => x !== null);
+  const avgWait = waits.length ? Math.round(waits.reduce((a,b)=>a+b,0)/waits.length) : null;
+  let longest = null;
+  inProg.forEach(r => { if (r.days !== null && (!longest || r.days > longest.days)) longest = r; });
+  const stCount = {};
+  records.forEach(r => { if (r.stage && r.stage !== 'Possession Done') stCount[r.stage] = (stCount[r.stage]||0)+1; });
+  const bn = Object.entries(stCount).sort((a,b)=>b[1]-a[1])[0];
+  const breached = records.filter(r => r.breached).length;
+  const compliance = paid ? Math.round((paid - breached) / paid * 100) : 100;
+  const pos28 = src.filter(r => r.facility === 'POSSDONE' && r.facDate &&
+    (today - r.facDate)/86400000 <= 28).length;
+  const velocity = pos28 / 4;
+  const eta = velocity > 0 ? Math.ceil(backlog / velocity) : null;
+  document.getElementById('ceoHealth').innerHTML =
+    tile(backlog, 'Handover Backlog', `paid, awaiting possession · <b>${rdy}</b> ready now`) +
+    tile(avgWait === null ? '—' : avgWait + '<small> days</small>', 'Avg Customer Waiting', longest ? `Longest: <b>${longest.customer}</b> · ${longest.days}d` : 'No one waiting') +
+    tile(bn ? bn[1] : 0, 'Pipeline Bottleneck', bn ? `Most flats stuck at <b>${bn[0]}</b>` : 'No flats in progress') +
+    tile(`${compliance}<small>%</small>`, 'TAT Compliance', breached ? `<b>${breached}</b> flats currently breached` : 'All flats within TAT') +
+    tile(velocity.toFixed(1) + '<small> /week</small>', 'Handover Velocity', eta ? `Last 28 days · backlog clears in ~<b>${eta} wks</b>` : 'Based on last 28 days');
+
+  // ── D) TOWER-WISE SCOREBOARD ──
+  const tw = document.getElementById('ceoTower');
+  const towers = {};
+  records.forEach(r => {
+    const t = r.tower || '';
+    if (!t) return;
+    if (!towers[t]) towers[t] = { n:0, pos:0, rdy:0, brc:0 };
+    towers[t].n++;
+    if (r.facility === 'POSSDONE') towers[t].pos++;
+    if (r.facility === 'READY' || r.facility === 'DONE') towers[t].rdy++;
+    if (r.breached) towers[t].brc++;
+  });
+  const keys = Object.keys(towers).sort();
+  if (!keys.length) { tw.innerHTML = ''; }
+  else {
+    tw.innerHTML = `<div class="ceosec">Tower-wise Scoreboard</div>
+    <div class="tw"><table><thead><tr><th>Tower</th><th>Customers</th><th>Poss Done</th><th>Ready</th><th>In Progress</th><th>TAT Breached</th><th>Completion</th></tr></thead><tbody>` +
+    keys.map(k => {
+      const t = towers[k];
+      const pct = t.n ? Math.round(t.pos / t.n * 100) : 0;
+      return `<tr><td>${k}</td><td class="vb">${t.n}</td><td class="vg">${t.pos}</td><td class="vp">${t.rdy}</td><td>${t.n - t.pos - t.rdy}</td><td class="${t.brc?'vr':'vm'}">${t.brc}</td><td class="${pct>=75?'vg':pct>=40?'va':'vr'}">${pct}%</td></tr>`;
+    }).join('') + `</tbody></table></div>`;
+  }
+}
+
 // ─── OVERDUE TABLE ────────────────────────────────────────────────
 function renderOvd(f='') {
   const rows = allOvd.filter(o =>
@@ -800,13 +1032,14 @@ function renderRecs() {
   const s = (document.getElementById('rs').value||'').toLowerCase();
   const rows = allRecs.filter(r => {
     const mf = matchFilter(r);
-    const ms = !s || r.customer.toLowerCase().includes(s) || String(r.flat).includes(s);
+    const ms = !s || r.customer.toLowerCase().includes(s) || String(r.flat).includes(s) || String(r.tower).toLowerCase().includes(s);
     return mf && ms;
   });
   document.getElementById('rc').textContent = `${rows.length} records`;
   document.getElementById('rtb').innerHTML = rows.map((r,i) => `<tr${r.breached?' style="background:#fdf6f5"':''}>
     <td style="color:var(--mut);font-size:11px">${i+1}</td>
     <td style="font-weight:500;max-width:190px;overflow:hidden;text-overflow:ellipsis" title="${r.customer}">${r.customer}${r.breached?` <span style="color:var(--red);font-size:10px;font-weight:700">⚠ +${r.overdueBy}d</span>`:''}</td>
+    <td style="font-weight:600">${r.tower || '—'}</td>
     <td style="font-weight:600">${r.flat}</td>
     <td>${cellWithDate(r.crm, r.crmDate)}</td>
     <td>${cellWithDate(r.account, r.accDate)}</td>
@@ -831,6 +1064,7 @@ document.getElementById('os').addEventListener('input', e => renderOvd(e.target.
 document.getElementById('rs').addEventListener('input', renderRecs);
 
 // ─── INIT ─────────────────────────────────────────────────────────
+buildPresetButtons();
 render([]);
 const now = new Date();
 document.getElementById('ldate').textContent =
