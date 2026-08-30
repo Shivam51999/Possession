@@ -152,6 +152,9 @@ tfoot td:first-child{text-align:left;color:var(--mut);font-size:11px;letter-spac
 .rsc::-webkit-scrollbar{width:5px;height:5px}.rsc::-webkit-scrollbar-thumb{background:#d8d8d8;border-radius:3px}
 .rt thead{position:sticky;top:0;z-index:2}
 .rt thead th{text-align:left;font-size:10px;white-space:nowrap}
+.rt thead th.sortable{cursor:pointer;user-select:none;transition:color .15s}
+.rt thead th.sortable:hover{color:var(--red)}
+.sarr{display:inline-block;margin-left:4px;font-size:9px;color:var(--red);width:9px}
 .rt tbody td{padding:8px 12px;text-align:left;white-space:nowrap}
 .sp{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
 .s0{background:#e9f7ef;color:#177a41}.s1{background:#fdeceb;color:#b32619}.s2{background:#fdf3e3;color:#b06f10}.s3{background:#e9f0fb;color:#2455ab}.s4{background:#f0eafb;color:#6a3fb8}.s5{background:#f4f4f4;color:#9a9a9a}
@@ -271,7 +274,18 @@ footer a{color:var(--red)}
   </div>
   <div class="rsc">
     <table class="rt">
-      <thead><tr><th>#</th><th>Customer Name</th><th>Tower</th><th>Flat</th><th>CRM Payment</th><th>Account</th><th>Engineering</th><th>Delay</th><th>Quality</th><th>Facility / Poss.</th></tr></thead>
+      <thead><tr>
+        <th class="sortable" onclick="setSort('sr')">#<span class="sarr" id="arr_sr"></span></th>
+        <th class="sortable" onclick="setSort('customer')">Customer Name<span class="sarr" id="arr_customer"></span></th>
+        <th class="sortable" onclick="setSort('tower')">Tower<span class="sarr" id="arr_tower"></span></th>
+        <th class="sortable" onclick="setSort('flat')">Flat<span class="sarr" id="arr_flat"></span></th>
+        <th class="sortable" onclick="setSort('crm')">CRM Payment<span class="sarr" id="arr_crm"></span></th>
+        <th class="sortable" onclick="setSort('account')">Account<span class="sarr" id="arr_account"></span></th>
+        <th class="sortable" onclick="setSort('engg')">Engineering<span class="sarr" id="arr_engg"></span></th>
+        <th class="sortable" onclick="setSort('delay')">Delay<span class="sarr" id="arr_delay"></span></th>
+        <th class="sortable" onclick="setSort('quality')">Quality<span class="sarr" id="arr_quality"></span></th>
+        <th class="sortable" onclick="setSort('facility')">Facility / Poss.<span class="sarr" id="arr_facility"></span></th>
+      </tr></thead>
       <tbody id="rtb"></tbody>
     </table>
   </div>
@@ -1014,6 +1028,45 @@ function renderOvd(f='') {
   }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--mut);padding:20px">No matching records</td></tr>`;
 }
 
+
+// ─── SORTING ──────────────────────────────────────────────────────
+let sortKey = null, sortDir = 1;
+const SORTERS = {
+  sr:       { t:'num',  g: r => { const n = parseFloat(r.sr); return isNaN(n) ? null : n; } },
+  customer: { t:'str',  g: r => r.customer },
+  tower:    { t:'str',  g: r => r.tower },
+  flat:     { t:'str',  g: r => r.flat },
+  crm:      { t:'date', g: r => r.crmDate },
+  account:  { t:'date', g: r => r.accDate },
+  engg:     { t:'date', g: r => r.enggDate },
+  delay:    { t:'num',  g: r => r.delay === '' ? null : parseFloat(r.delay) },
+  quality:  { t:'date', g: r => r.qDate },
+  facility: { t:'num',  g: r => ({ POSSDONE:4, READY:3, DONE:3, NOTDONE:1 }[r.facility] ?? (r.facility ? 2 : null)) },
+};
+function setSort(key) {
+  if (sortKey === key) sortDir = -sortDir;
+  else { sortKey = key; sortDir = 1; }
+  document.querySelectorAll('.sarr').forEach(el => el.textContent = '');
+  const arr = document.getElementById('arr_' + key);
+  if (arr) arr.textContent = sortDir === 1 ? '▲' : '▼';
+  renderRecs();
+}
+function sortRows(rows) {
+  if (!sortKey || !SORTERS[sortKey]) return rows;
+  const { t, g } = SORTERS[sortKey];
+  return rows.slice().sort((a, b) => {
+    const va = g(a), vb = g(b);
+    const ea = (va === null || va === undefined || va === ''), eb = (vb === null || vb === undefined || vb === '');
+    if (ea && eb) return 0;
+    if (ea) return 1;            // empties always last
+    if (eb) return -1;
+    let c;
+    if (t === 'str') c = String(va).localeCompare(String(vb), undefined, { numeric: true, sensitivity: 'base' });
+    else c = (va > vb) - (va < vb);   // num & date
+    return c * sortDir;
+  });
+}
+
 // ─── ALL RECORDS TABLE ────────────────────────────────────────────
 function matchFilter(r) {
   switch (activeFilter) {
@@ -1030,11 +1083,11 @@ function cellWithDate(status, date) {
 }
 function renderRecs() {
   const s = (document.getElementById('rs').value||'').toLowerCase();
-  const rows = allRecs.filter(r => {
+  const rows = sortRows(allRecs.filter(r => {
     const mf = matchFilter(r);
     const ms = !s || r.customer.toLowerCase().includes(s) || String(r.flat).includes(s) || String(r.tower).toLowerCase().includes(s);
     return mf && ms;
-  });
+  }));
   document.getElementById('rc').textContent = `${rows.length} records`;
   document.getElementById('rtb').innerHTML = rows.map((r,i) => `<tr${r.breached?' style="background:#fdf6f5"':''}>
     <td style="color:var(--mut);font-size:11px">${i+1}</td>
