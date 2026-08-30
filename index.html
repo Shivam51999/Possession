@@ -178,6 +178,7 @@ const LINKS = {
 };
 // Data sources (same as each dashboard uses)
 const LP_API_URL   = 'https://script.google.com/macros/s/AKfycbxEGcpa9JJEi5Ry3-kM-OiO864h7SRpPaFt4LjgdUASCbZBZgTCw1gm3fBlGD8Twvem/exec';
+const MZ_API_URL   = 'https://script.google.com/macros/s/AKfycbxOfwctWV4ehc_roei1ulNXXt7wFhJx72h0hR11NkMeYie9Zpa40ytd8YFDh3oxALvFeg/exec';   // ⬅ PASTE THE SAME MELIZMA APPS SCRIPT /exec URL HERE
 const MZ_SHEET_ID  = '1N2-7dMKSvbX9hIrddrdOLXUFzzFu8Q8KI70WMn3cmWo';
 const MZ_SHEET_NAME= '';
 const REFRESH_MS   = 5 * 60 * 1000;
@@ -393,7 +394,16 @@ async function loadLifepark() {
 async function loadMelizma() {
   setStat('mz_stat','wait','Connecting…');
   try {
-    const rows = await fetchGvizRows(MZ_SHEET_ID, MZ_SHEET_NAME);
+    let rows = null;
+    if (MZ_API_URL) {
+      try {
+        let json;
+        try { json = await fetchJson(MZ_API_URL); }
+        catch(e) { json = await fetchJsonp(MZ_API_URL); }
+        rows = Array.isArray(json) ? json : (json.data || json.values);
+      } catch(e) { console.warn('Melizma Apps Script failed, trying gviz:', e.message); }
+    }
+    if (!Array.isArray(rows)) rows = await fetchGvizRows(MZ_SHEET_ID, MZ_SHEET_NAME);
     suite.mz = melizmaStats(rows);
     paintCard('mz', suite.mz, 'All stages within TAT', 'flats breached TAT');
     setStat('mz_stat','live','● Live · ' + suite.mz.tot + ' records');
