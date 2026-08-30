@@ -283,7 +283,8 @@ footer a{color:var(--red)}
         <th class="sortable" onclick="setSort('account')">Account<span class="sarr" id="arr_account"></span></th>
         <th class="sortable" onclick="setSort('engg')">Engineering<span class="sarr" id="arr_engg"></span></th>
         <th class="sortable" onclick="setSort('delay')">Delay<span class="sarr" id="arr_delay"></span></th>
-        <th class="sortable" onclick="setSort('quality')">Quality<span class="sarr" id="arr_quality"></span></th>
+        <th class="sortable" onclick="setSort('inspection')">Inspection<span class="sarr" id="arr_inspection"></span></th>
+        <th class="sortable" onclick="setSort('quality')">Quality Check<span class="sarr" id="arr_quality"></span></th>
         <th class="sortable" onclick="setSort('facility')">Facility / Poss.<span class="sarr" id="arr_facility"></span></th>
       </tr></thead>
       <tbody id="rtb"></tbody>
@@ -320,8 +321,8 @@ let isRefreshing = false;
 // ─── HELPERS ──────────────────────────────────────────────────────
 function pill(v) {
   if (!v) return '<span class="sp s5">—</span>';
-  const m = {RECEIVED:'s0',DONE:'s0',NOTDONE:'s1',PENDING:'s2',POSSDONE:'s3',READY:'s4'};
-  const l = {RECEIVED:'Received',DONE:'Done',NOTDONE:'Not Done',PENDING:'Pending',POSSDONE:'Poss Done',READY:'Ready'};
+  const m = {RECEIVED:'s0',DONE:'s0',OKAY:'s0',NOTDONE:'s1',NOTOKAY:'s1',PENDING:'s2',POSSDONE:'s3',READY:'s4'};
+  const l = {RECEIVED:'Received',DONE:'Done',OKAY:'Okay',NOTDONE:'Not Done',NOTOKAY:'Not Okay',PENDING:'Pending',POSSDONE:'Poss Done',READY:'Ready'};
   return `<span class="sp ${m[v]||'s5'}">${l[v]||v}</span>`;
 }
 function fmtDate(d) {
@@ -370,7 +371,10 @@ function norm(v) {
   if (s === '' ) return '';
   if (s.includes('POSS'))     return 'POSSDONE';
   if (s === 'READY')          return 'READY';
+  if (s.startsWith('INSPECTION')) return s.includes('DONE') ? 'DONE' : 'PENDING';
   if (s.includes('NOTDONE'))  return 'NOTDONE';
+  if (s.includes('NOTOKAY') || s.includes('NOTOAKY') || s.includes('FAIL')) return 'NOTOKAY';
+  if (s.includes('OKAY') || s.includes('PASS') || s.endsWith('OAKY')) return 'OKAY';
   if (s === 'DONE')           return 'DONE';
   if (s.includes('PENDING'))  return 'PENDING';
   if (s.includes('RECEIVED')) return 'RECEIVED';
@@ -411,8 +415,8 @@ function parseRows(rows) {
     account:  base + 2, acc_date: base + 3,
     engg:     base + 4, engg_date: base + 5,
     delay:    base + 6,
-    quality:  base + 7, q_date:   base + 8,
-    facility: base + 9, fac_date: base + 10,
+    inspection: base + 7, qcheck: base + 8, q_date: base + 9,
+    facility: base + 10, fac_date: base + 11,
   };
   console.log('Header row', hi, '— column map:', CI);
 
@@ -444,12 +448,18 @@ function parseRows(rows) {
       crm:      norm(r[CI.crm]),
       account:  norm(r[CI.account]),
       engg:     norm(r[CI.engg]),
-      quality:  norm(r[CI.quality]),
+      inspection: norm(r[CI.inspection]),
+      qcheck:     norm(r[CI.qcheck]),
       facility: norm(r[CI.facility]),
       delay,
       crmDate, accDate, enggDate, qDate, facDate,
       days: crmDate ? Math.floor((today - crmDate) / 86400000) : null,
     };
+    // Quality verdict comes ONLY from the QUALITY CHECK column.
+    // INSPECTION Done/Pending is a stage status (inspected or not), never a failure.
+    const qOk    = v => v === 'OKAY' || v === 'DONE';
+    const qFail  = v => v === 'NOTOKAY' || v === 'PENDING';
+    rec.quality = qOk(rec.qcheck) ? 'DONE' : qFail(rec.qcheck) ? 'PENDING' : '';
     computeTat(rec, today);
     // If the sheet gave no usable delay, derive engineering delay from the TAT engine
     if (!rec.delay && crmDate) {
@@ -491,9 +501,10 @@ function computeTat(r, today) {
     r.stage = 'Quality Issue Rectification'; r.stageSince = base; r.tatDays = TAT.qualityFix;
     r.deadline = addDays(base, TAT.qualityFix);
   }
-  // 4) Engg done, awaiting quality visit (no TAT defined — tracked, not breached)
+  // 4) Engg done, awaiting quality (inspection first, then verdict — tracked, not breached)
   else if (r.quality !== 'DONE') {
-    r.stage = 'Awaiting Quality Check'; r.stageSince = r.enggDate || r.crmDate;
+    r.stage = (r.inspection === 'DONE') ? 'Awaiting Quality Verdict' : 'Awaiting Quality Inspection';
+    r.stageSince = r.qDate || r.enggDate || r.crmDate;
     return;
   }
   // 5) Facility raised an issue — engineering gets 2 days
@@ -786,8 +797,8 @@ function renderCharts(records) {
   const C = { blu:'#2f6fd6', pur:'#8352d6', grn:'#1fa855', acc:'#14b8a0', org:'#e8961e', red:'#e2382a', mut:'#6b737c' };
 
   // 1) Stage distribution doughnut
-  const stageOrder = ['Account Confirmation','Engineering Work','Quality Issue Rectification','Awaiting Quality Check','Facility Issue Rectification','Awaiting Facility Check','Ready — Call Customer','Possession Done'];
-  const stageCol   = [C.pur, C.blu, C.red, C.acc, C.org, C.mut, '#0d9488', C.grn];
+  const stageOrder = ['Account Confirmation','Engineering Work','Quality Issue Rectification','Awaiting Quality Inspection','Awaiting Quality Verdict','Facility Issue Rectification','Awaiting Facility Check','Ready — Call Customer','Possession Done'];
+  const stageCol   = [C.pur, C.blu, C.red, '#5eb8ac', C.acc, C.org, C.mut, '#0d9488', C.grn];
   const sc = {};
   records.forEach(r => { if (r.stage) sc[r.stage] = (sc[r.stage]||0)+1; });
   const sLabels = stageOrder.filter(s => sc[s]);
@@ -1040,6 +1051,7 @@ const SORTERS = {
   account:  { t:'date', g: r => r.accDate },
   engg:     { t:'date', g: r => r.enggDate },
   delay:    { t:'num',  g: r => r.delay === '' ? null : parseFloat(r.delay) },
+  inspection: { t:'num', g: r => ({ DONE:2, PENDING:1 }[r.inspection] ?? (r.inspection ? 1.5 : null)) },
   quality:  { t:'date', g: r => r.qDate },
   facility: { t:'num',  g: r => ({ POSSDONE:4, READY:3, DONE:3, NOTDONE:1 }[r.facility] ?? (r.facility ? 2 : null)) },
 };
@@ -1098,7 +1110,8 @@ function renderRecs() {
     <td>${cellWithDate(r.account, r.accDate)}</td>
     <td>${cellWithDate(r.engg, r.enggDate)}</td>
     <td style="color:${r.delay && r.delay !== '0' ? 'var(--red)' : 'var(--mut)'};font-weight:600">${r.delay || '—'}</td>
-    <td>${cellWithDate(r.quality, r.qDate)}</td>
+    <td>${pill(r.inspection)}</td>
+    <td>${cellWithDate(r.qcheck, r.qDate)}</td>
     <td>${cellWithDate(r.facility, r.facDate)}</td>
   </tr>`).join('');
 }
