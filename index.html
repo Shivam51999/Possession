@@ -247,7 +247,10 @@ function norm(v) {
   if (s === '') return '';
   if (s.includes('POSS'))     return 'POSSDONE';
   if (s === 'READY')          return 'READY';
+  if (s.startsWith('INSPECTION')) return s.includes('DONE') ? 'DONE' : 'PENDING';
   if (s.includes('NOTDONE'))  return 'NOTDONE';
+  if (s.includes('NOTOKAY') || s.includes('NOTOAKY') || s.includes('FAIL')) return 'NOTOKAY';
+  if (s.includes('OKAY') || s.includes('PASS') || s.endsWith('OAKY')) return 'OKAY';
   if (s === 'DONE')           return 'DONE';
   if (s.includes('PENDING'))  return 'PENDING';
   if (s.includes('RECEIVED')) return 'RECEIVED';
@@ -377,7 +380,7 @@ function melizmaStats(rows) {
   if (towerCol === flatCol + 1) b = flatCol + 2;
   const CI = { customer: custCol,
     crm: b, crm_date: b+1, account: b+2, acc_date: b+3,
-    engg: b+4, quality: b+7, q_date: b+8, facility: b+9, fac_date: b+10 };
+    engg: b+4, inspection: b+7, qcheck: b+8, q_date: b+9, facility: b+10, fac_date: b+11 };
 
   const today = today0();
   let tot=0, pos=0, rdy=0, brc=0;
@@ -391,7 +394,11 @@ function melizmaStats(rows) {
     const qDate   = parseDate(r[CI.q_date]);
     const facDate = parseDate(r[CI.fac_date]);
     const account = norm(r[CI.account]), engg = norm(r[CI.engg]);
-    const quality = norm(r[CI.quality]), facility = norm(r[CI.facility]);
+    const qchk = norm(r[CI.qcheck]);
+    const qOk = v => v === 'OKAY' || v === 'DONE';
+    const qFail = v => v === 'NOTOKAY' || v === 'PENDING';
+    const quality = qOk(qchk) ? 'DONE' : qFail(qchk) ? 'PENDING' : '';
+    const facility = norm(r[CI.facility]);
 
     if (facility === 'POSSDONE') { pos++; continue; }
     if (facility === 'READY' || facility === 'DONE') { rdy++; continue; }
