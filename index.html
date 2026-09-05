@@ -181,7 +181,7 @@ footer{text-align:center;color:#4a525b;font-size:12px;padding:26px 20px;border-t
         <div class="alertline al-ok" id="lp_alert" style="display:none"></div>
         <div class="cfoot">
           <a class="open" id="lp_link" href="lifepark_dashboard_fixed.html">Open Lifepark Dashboard <span class="arrow">→</span></a>
-          <div class="cnote">TAT: Account 48h · Engg 7d · Quality fix 3d · Desnag fix 2d</div>
+          <div class="cnote">Engg 7d from payment · Quality 3d · Desnag 2d · Account 48h gates handover</div>
         </div>
       </div>
 
@@ -207,7 +207,7 @@ footer{text-align:center;color:#4a525b;font-size:12px;padding:26px 20px;border-t
         <div class="alertline al-ok" id="mz_alert" style="display:none"></div>
         <div class="cfoot">
           <a class="open" id="mz_link" href="melizma_possession_dashboard.html">Open Melizma Dashboard <span class="arrow">→</span></a>
-          <div class="cnote">TAT: Account 48h · Engg 7d · Quality fix 3d · Facility fix 2d</div>
+          <div class="cnote">Engg 7d from payment · Quality 3d · Facility 2d · Account 48h gates handover</div>
         </div>
       </div>
 
@@ -375,7 +375,8 @@ function lifeparkStats(rows) {
     paid++;
     const facility = norm(r[CI.facility]);
     if (facility === 'POSSDONE') { pos++; continue; }
-    if (facility === 'READY' || facility === 'DONE') { rdy++; continue; }
+    const isReady = (facility === 'READY' || facility === 'DONE');
+    if (isReady) rdy++;
 
     const crmDate = parseDate(r[CI.crm_date]);
     if (!crmDate) continue;
@@ -385,14 +386,16 @@ function lifeparkStats(rows) {
     const account = norm(r[CI.account]), engg = norm(r[CI.engg]);
     const quality = norm(r[CI.quality]);
 
-    let deadline = null;
     const accConfirmed = (account === 'RECEIVED' || account === 'DONE');
-    if (!accConfirmed)              deadline = addDays(crmDate, TAT.account);
-    else if (engg !== 'DONE')       deadline = addDays(accDate || addDays(crmDate, TAT.account), TAT.engg);
+    let breach = false;
+    if (!accConfirmed && today > addDays(crmDate, TAT.account)) breach = true;
+    let deadline = null;
+    if (engg !== 'DONE')            deadline = addDays(crmDate, TAT.engg);
     else if (quality === 'PENDING') deadline = addDays(qDate || crmDate, TAT.qualityFix);
     else if (quality === 'DONE' && (facility === 'NOTDONE' || facility === 'DESNAG'))
                                     deadline = addDays(facDate || qDate || crmDate, TAT.facilityFix);
-    if (deadline && today > deadline) brc++;
+    if (deadline && today > deadline) breach = true;
+    if (breach) brc++;
   }
   return { tot, paid, pos, rdy, alert: brc };
 }
@@ -436,16 +439,23 @@ function melizmaStats(rows) {
     const facility = norm(r[CI.facility]);
 
     if (facility === 'POSSDONE') { pos++; continue; }
-    if (facility === 'READY' || facility === 'DONE') { rdy++; continue; }
+    const isReady = (facility === 'READY' || facility === 'DONE');
+    if (isReady) rdy++;
     if (!crmDate) continue;
 
-    let deadline = null;
     const accConfirmed = (account === 'RECEIVED' || account === 'DONE');
-    if (!accConfirmed)                deadline = addDays(crmDate, TAT.account);
-    else if (engg !== 'DONE')         deadline = addDays(accDate || addDays(crmDate, TAT.account), TAT.engg);
+    let breach = false;
+    // Parallel: account confirmation (48h) — required before handover, doesn't block work
+    if (!accConfirmed && today > addDays(crmDate, TAT.account)) breach = true;
+    // Sequential: work starts at payment received
+    let deadline = null;
+    if (isReady)                      deadline = null;   // work done; only account gate applies
+    else if (engg !== 'DONE')         deadline = addDays(crmDate, TAT.engg);
     else if (quality === 'PENDING')   deadline = addDays(qDate || crmDate, TAT.qualityFix);
-    else if (quality === 'DONE' && facility === 'NOTDONE') deadline = addDays(facDate || qDate || crmDate, TAT.facilityFix);
-    if (deadline && today > deadline) brc++;
+    else if (quality === 'DONE' && (facility === 'NOTDONE' || facility === 'DESNAG'))
+                                      deadline = addDays(facDate || qDate || crmDate, TAT.facilityFix);
+    if (deadline && today > deadline) breach = true;
+    if (breach) brc++;
   }
   return { tot, paid, pos, rdy, alert: brc };
 }
