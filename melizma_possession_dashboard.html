@@ -198,6 +198,31 @@ tfoot td:first-child{text-align:left;color:var(--mut);font-size:11px;letter-spac
 .fb button:hover,.fb button.ac{background:var(--red);border-color:var(--red);color:#fff}
 footer{margin-top:40px;text-align:center;color:#525a63;font-size:11px;letter-spacing:.5px;border-top:1px solid var(--bd);padding-top:20px;line-height:2}
 footer a{color:var(--red)}
+/* CLICKABLE TILES + SOURCE-DATA WINDOW */
+.kc.click,.ct.click{cursor:pointer}
+.ct.click{transition:transform .15s,box-shadow .15s,border-color .15s}
+.ct.click:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.07);border-color:#d9dde2}
+.kc.click:focus-visible,.ct.click:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.kh{margin-top:9px;font-size:11px;font-weight:700;color:var(--red)}
+.cth{margin-top:7px;font-size:11px;font-weight:700;color:var(--red)}
+.dov{position:fixed;inset:0;z-index:50;background:rgba(21,24,29,.55);display:flex;align-items:center;justify-content:center;padding:24px}
+.dov[hidden]{display:none}
+.dmod{background:#fff;border-radius:14px;width:min(1120px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3);overflow:hidden}
+.dmh{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:18px 22px 14px}
+.dmt{font-size:18px;font-weight:800;color:#15181d}
+.dmd{font-size:12.5px;color:#525a63;margin-top:4px;max-width:760px;line-height:1.5}
+.dmx{flex-shrink:0;background:#fff;border:1px solid #d9dde2;color:#2c3238;border-radius:8px;width:34px;height:34px;font-size:15px;cursor:pointer;font-family:inherit}
+.dmx:hover{border-color:var(--red);color:var(--red)}
+.dmv{padding:0 22px 4px}
+.dmv:empty{display:none}
+.dmtools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 22px 14px}
+.dmtools .rs{width:260px}
+.dmcount{font-size:12px;font-weight:600;color:#3d444d;margin-left:auto}
+.dmb{overflow:auto;flex:1;border-top:1px solid var(--bd)}
+.dmb thead th{position:sticky;top:0;z-index:1}
+.rlink{color:var(--red);font-weight:600;font-size:12px;white-space:nowrap}
+.rlink:hover{text-decoration:underline}
+@media(max-width:700px){.dov{padding:8px}.dmod{max-height:calc(100vh - 16px)}.dmtools .rs{width:100%}}
 </style>
 </head>
 <body>
@@ -394,6 +419,22 @@ footer a{color:var(--red)}
 </footer>
 </div>
 
+<div class="dov" id="dov" hidden>
+  <div class="dmod" role="dialog" aria-modal="true" aria-labelledby="dmT">
+    <div class="dmh">
+      <div><div class="dmt" id="dmT"></div><div class="dmd" id="dmD"></div></div>
+      <button class="dmx" id="dmx" onclick="closeDrill()" aria-label="Close">✕</button>
+    </div>
+    <div class="dmv dpre" id="dmV"></div>
+    <div class="dmtools">
+      <input class="rs" type="text" id="dmS" placeholder="Search name / flat / tower…">
+      <button class="dapply" onclick="dlCsv()">Download CSV</button>
+      <span class="dmcount" id="dmC"></span>
+    </div>
+    <div class="dmb"><table class="ot"><thead id="dmHead"></thead><tbody id="dmBody"></tbody></table></div>
+  </div>
+</div>
+
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────
 const SHEET_ID   = '1N2-7dMKSvbX9hIrddrdOLXUFzzFu8Q8KI70WMn3cmWo';
@@ -542,6 +583,7 @@ function parseRows(rows) {
 
     const rec = {
       sr:       String(r[CI.sr] !== undefined && r[CI.sr] !== null ? r[CI.sr] : records.length+1).replace(/\.0$/,''),
+      row:      i + 1,   // sheet row (exact when data comes via Apps Script)
       customer: name,
       flat:     String(r[CI.flat] || '').replace(/\.0$/,''),
       tower:    CI.tower >= 0 ? String(r[CI.tower] || '').replace(/\.0$/,'').trim() : '',
@@ -885,20 +927,21 @@ function render(records) {
   // ── KPI CARDS ──
   const kg = document.getElementById('kg'); kg.innerHTML = '';
   [
-    {cls:'c1',icon:'💰',v:crm, lbl:'CRM Payment\nReceived',  sub:`of ${tot} total`,          col:'var(--blu)',pct:Math.round(crm/tot*100||0)},
-    {cls:'c2',icon:'🏦',v:acc, lbl:'Account\nCleared',      sub:`Gate before handover`,               col:'var(--pur)',pct:crm?Math.round(acc/crm*100):0},
-    {cls:'c3',icon:'🔧',v:eng, lbl:'Engg Work\nDone',        sub:`${end} pending · from payment`,  col:'var(--grn)',pct:crm?Math.round(eng/crm*100):0},
-    {cls:'c4',icon:'✅',v:qua, lbl:'Quality\nChecked',       sub:`${qp} issues pending`,     col:'var(--acc)',pct:crm?Math.round(qua/crm*100):0},
-    {cls:'c5',icon:'🏢',v:fac, lbl:'Facility\nCleared',      sub:`Incl. Ready & Done`,       col:'var(--org)',pct:crm?Math.round(fac/crm*100):0},
-    {cls:'c6',icon:'🎉',v:pos, lbl:'Possession\nDone',       sub:`${rdy} ready to handover`, col:'var(--grn)',pct:crm?Math.round(pos/crm*100):0},
-    {cls:'al',icon:'⚠️',v:records.filter(r=>r.anyBreach).length,lbl:'TAT\nBreached', sub:'Needs immediate action',   col:'var(--red)',pct:null},
+    {dk:'crm',cls:'c1',icon:'💰',v:crm, lbl:'CRM Payment\nReceived',  sub:`of ${tot} total`,          col:'var(--blu)',pct:Math.round(crm/tot*100||0)},
+    {dk:'acc',cls:'c2',icon:'🏦',v:acc, lbl:'Account\nCleared',      sub:`Gate before handover`,               col:'var(--pur)',pct:crm?Math.round(acc/crm*100):0},
+    {dk:'eng',cls:'c3',icon:'🔧',v:eng, lbl:'Engg Work\nDone',        sub:`${end} pending · from payment`,  col:'var(--grn)',pct:crm?Math.round(eng/crm*100):0},
+    {dk:'qua',cls:'c4',icon:'✅',v:qua, lbl:'Quality\nChecked',       sub:`${qp} issues pending`,     col:'var(--acc)',pct:crm?Math.round(qua/crm*100):0},
+    {dk:'fac',cls:'c5',icon:'🏢',v:fac, lbl:'Facility\nCleared',      sub:`Incl. Ready & Done`,       col:'var(--org)',pct:crm?Math.round(fac/crm*100):0},
+    {dk:'pos',cls:'c6',icon:'🎉',v:pos, lbl:'Possession\nDone',       sub:`${rdy} ready to handover`, col:'var(--grn)',pct:crm?Math.round(pos/crm*100):0},
+    {dk:'breach',cls:'al',icon:'⚠️',v:records.filter(r=>r.anyBreach).length,lbl:'TAT\nBreached', sub:'Needs immediate action',   col:'var(--red)',pct:null},
   ].forEach(k => {
     const d = document.createElement('div');
-    d.className = `kc ${k.cls}`;
+    d.className = `kc ${k.cls}` + (k.dk ? ' click' : '');
+    if (k.dk) { d.setAttribute('data-drill', k.dk); d.tabIndex = 0; d.setAttribute('role','button'); }
     const prog = k.pct !== null
       ? `<div class="pb"><div class="prow"><span>Completion</span><b>${k.pct}%</b></div><div class="pbt"><div class="pbf" style="width:${k.pct}%;background:${k.col}"></div></div></div>`
       : '';
-    d.innerHTML = `<span class="ki">${k.icon}</span><div class="kv">${k.v}</div><div class="kl">${k.lbl.replace('\n','<br>')}</div><div class="ks"><span>${k.sub}</span></div>${prog}`;
+    d.innerHTML = `<span class="ki">${k.icon}</span><div class="kv">${k.v}</div><div class="kl">${k.lbl.replace('\n','<br>')}</div><div class="ks"><span>${k.sub}</span></div>${prog}${k.dk ? '<div class="kh">View customers ›</div>' : ''}`;
     kg.appendChild(d);
   });
 
@@ -990,6 +1033,7 @@ function render(records) {
   renderWaiting();
   renderOvd(document.getElementById('os').value.toLowerCase());
   renderRecs();
+  if (drillKey) renderDrill();
 }
 
 
@@ -1152,7 +1196,9 @@ function renderCeo(records) {
   const el = document.getElementById('ceo');
   if (!el) return;
   const today = today0();
-  const tile = (v, l, s) => `<div class="ct"><div class="ctv">${v}</div><div class="ctl">${l}</div><div class="cts">${s}</div></div>`;
+  const tile = (v, l, s, dk) => dk
+    ? `<div class="ct click" data-drill="${dk}" tabindex="0" role="button"><div class="ctv">${v}</div><div class="ctl">${l}</div><div class="cts">${s}</div><div class="cth">View customers ›</div></div>`
+    : `<div class="ct"><div class="ctv">${v}</div><div class="ctl">${l}</div><div class="cts">${s}</div></div>`;
 
   // ── A) DEPARTMENT ACTIVITY in the selected period (each dept measured by its own dates) ──
   const src = rawRecs.length ? rawRecs : records;
@@ -1162,11 +1208,11 @@ function renderCeo(records) {
   const actQc  = src.filter(r => r.quality === 'DONE' && inRange(r.qDate)).length;
   const actPos = src.filter(r => r.facility === 'POSSDONE' && inRange(r.facDate)).length;
   document.getElementById('ceoAct').innerHTML =
-    tile(actPay, 'Payments Received', 'CRM entries in period') +
-    tile(actAcc, 'Account Confirmations', 'confirmed in period') +
-    tile(actEng, 'Engineering Completions', 'flats finished in period') +
-    tile(actQc,  'Quality Checks Passed', 'QC done in period') +
-    tile(actPos, 'Possessions Handed Over', 'handovers in period');
+    tile(actPay, 'Payments Received', 'CRM entries in period', 'actPay') +
+    tile(actAcc, 'Account Confirmations', 'confirmed in period', 'actAcc') +
+    tile(actEng, 'Engineering Completions', 'flats finished in period', 'actEng') +
+    tile(actQc,  'Quality Checks Passed', 'QC done in period', 'actQc') +
+    tile(actPos, 'Possessions Handed Over', 'handovers in period', 'actPos');
 
   // ── B) CYCLE TIMES (cohort = filtered records) ──
   const tot  = records.length;
@@ -1181,7 +1227,7 @@ function renderCeo(records) {
   const eq  = avgDays(records.filter(r => r.quality === 'DONE').map(r => [r.crmDate, r.qDate]));
   const e2e = avgDays(records.filter(r => r.facility === 'POSSDONE').map(r => [r.crmDate, r.facDate]));
   el.innerHTML =
-    tile(`${paid}<small> / ${tot}</small>`, 'Customers Paid', `<b>${paidPct}%</b> of total customers`) +
+    tile(`${paid}<small> / ${tot}</small>`, 'Customers Paid', `<b>${paidPct}%</b> of total customers`, 'crm') +
     tile(fmtDur(acc.avg), 'Avg Account Clearance', accWithinPct === null ? 'No confirmations yet' : `<b>${accWithinPct}%</b> within 48-hr TAT · ${acc.n} cleared`) +
     tile(fmtDur(eng.avg), 'Avg Engineering Completion', eng.n ? `Payment → flat done · <b>${eng.n}</b> flats` : 'No completions yet') +
     tile(fmtDur(eq.avg), 'Engineering → Quality Confirmed', eq.n ? `Payment → QC passed · <b>${eq.n}</b> flats` : 'No QC confirmations yet') +
@@ -1206,11 +1252,11 @@ function renderCeo(records) {
   const velocity = pos28 / 4;
   const eta = velocity > 0 ? Math.ceil(backlog / velocity) : null;
   document.getElementById('ceoHealth').innerHTML =
-    tile(backlog, 'Handover Backlog', `paid, awaiting possession · <b>${rdy}</b> ready now`) +
-    tile(avgWait === null ? '—' : avgWait + '<small> days</small>', 'Avg Customer Waiting', longest ? `Longest: <b>${esc(longest.customer)}</b> · ${longest.days}d` : 'No one waiting') +
-    tile(bn ? bn[1] : 0, 'Pipeline Bottleneck', bn ? `Most flats stuck at <b>${bn[0]}</b>` : 'No flats in progress') +
-    tile(`${compliance}<small>%</small>`, 'TAT Compliance', breached ? `<b>${breached}</b> flats currently breached` : 'All flats within TAT') +
-    tile(velocity.toFixed(1) + '<small> /week</small>', 'Handover Velocity', eta ? `Last 28 days · backlog clears in ~<b>${eta} wks</b>` : 'Based on last 28 days');
+    tile(backlog, 'Handover Backlog', `paid, awaiting possession · <b>${rdy}</b> ready now`, 'backlog') +
+    tile(avgWait === null ? '—' : avgWait + '<small> days</small>', 'Avg Customer Waiting', longest ? `Longest: <b>${esc(longest.customer)}</b> · ${longest.days}d` : 'No one waiting', 'avgwait') +
+    tile(bn ? bn[1] : 0, 'Pipeline Bottleneck', bn ? `Most flats stuck at <b>${bn[0]}</b>` : 'No flats in progress', 'bottleneck') +
+    tile(`${compliance}<small>%</small>`, 'TAT Compliance', breached ? `<b>${breached}</b> flats currently breached` : 'All flats within TAT', 'breach') +
+    tile(velocity.toFixed(1) + '<small> /week</small>', 'Handover Velocity', eta ? `Last 28 days · backlog clears in ~<b>${eta} wks</b>` : 'Based on last 28 days', 'velocity');
 
   // ── D) TOWER-WISE SCOREBOARD (lives in a drill-down panel) ──
   const tw = document.getElementById('ceoTower');
@@ -1349,6 +1395,191 @@ function renderRecs() {
     <td>${cellWithDate(r.facility, r.facDate)}</td>
   </tr>`).join('');
 }
+
+// ─── SOURCE-DATA WINDOW (click any tile → customers behind the number) ───
+function sheetRowUrl(n) { return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#range=A${n}`; }
+const byDate = (g, dir) => (a, b) => {
+  const x = g(a), y = g(b);
+  if (!x && !y) return 0; if (!x) return 1; if (!y) return -1;
+  return (x - y) * dir;
+};
+const sWait   = (a, b) => ((b.days ?? -1) - (a.days ?? -1));
+const sCrmOld = byDate(r => r.crmDate, 1);
+const sAccNew = byDate(r => r.accDate, -1);
+const sEngNew = byDate(r => r.enggDate, -1);
+const sQcNew  = byDate(r => r.qDate, -1);
+const sFacNew = byDate(r => r.facDate, -1);
+const isAccOk   = r => r.account === 'RECEIVED' || r.account === 'DONE';
+const isReadyNow = r => r.facility === 'READY' || r.facility === 'DONE';
+const dTxt = (st, d) => (st || '') + (d ? ' · ' + fmtDate(d) : '');
+const overOf = (r, v) => (v && v.o) ? v.o(r) : Math.max(r.overdueBy, r.accOverdueBy);
+
+// Columns available in the window (html for screen, txt for CSV)
+const DC = {
+  tower: { h:'Tower',          html: r => esc(r.tower) || '—', txt: r => r.tower },
+  flat:  { h:'Flat',           html: r => esc(r.flat),         txt: r => r.flat },
+  crm:   { h:'CRM Payment On', html: r => fmtDate(r.crmDate),  txt: r => r.crmDate ? fmtDate(r.crmDate) : '' },
+  wait:  { h:'Days Waiting', cls:'r', html: r => waitCell(r),   txt: r => isWaiting(r) ? r.days : '' },
+  stage: { h:'Currently At',   html: r => `<span class="stg">${esc(r.stage) || '—'}</span>`, txt: r => r.stage },
+  acc:   { h:'Account',        html: r => cellWithDate(r.account, r.accDate),  txt: r => dTxt(r.account, r.accDate) },
+  eng:   { h:'Engineering',    html: r => cellWithDate(r.engg, r.enggDate),    txt: r => dTxt(r.engg, r.enggDate) },
+  qc:    { h:'Quality Check',  html: r => cellWithDate(r.qcheck, r.qDate),     txt: r => dTxt(r.qcheck, r.qDate) },
+  fac:   { h:'Facility / Poss.', html: r => cellWithDate(r.facility, r.facDate), txt: r => dTxt(r.facility, r.facDate) },
+  over:  { h:'Overdue By', cls:'r', html: (r, v) => { const d = overOf(r, v); return d ? `<span class="db ${d > 7 ? 'dc' : d > 3 ? 'dw' : 'dm'}">+${d}d</span>` : '—'; }, txt: (r, v) => overOf(r, v) || '' },
+  row:   { h:'Sheet Row',      html: r => r.row ? `<a class="rlink" href="${sheetRowUrl(r.row)}" target="_blank" rel="noopener">Row ${r.row} ↗</a>` : '—', txt: r => r.row || '' },
+};
+
+// Each tile → title, plain-language rule, columns, and the list(s) behind the number.
+// The first list in each entry is exactly the number shown on the tile.
+const inP = (dateOf, ok) => r => ok(r) && inRange(dateOf(r));
+const D = {
+  crm:  { t:'CRM Payment Received', d:'Customers for whom CRM has marked the payment as received.',
+          cols:['tower','flat','crm','acc','stage','row'],
+          views: () => [{ l:'Received', f:r=>r.crm==='RECEIVED', s:sCrmOld }, { l:'Not yet paid', f:r=>r.crm!=='RECEIVED', s:sCrmOld }] },
+  acc:  { t:'Account Cleared', d:'Payments confirmed by Accounts. This runs in parallel with engineering, but must be cleared before handover.',
+          cols:['tower','flat','crm','acc','wait','row'],
+          views: () => [{ l:'Cleared', f:isAccOk, s:sAccNew }, { l:'Paid, awaiting clearance', f:r=>r.crm==='RECEIVED'&&!isAccOk(r), s:sWait }] },
+  eng:  { t:'Engineering Work Done', d:'Flats where engineering has marked the work as done.',
+          cols:['tower','flat','crm','eng','stage','row'],
+          views: () => [{ l:'Done', f:r=>r.engg==='DONE', s:sEngNew }, { l:'Pending (paid, not done)', f:r=>r.crm==='RECEIVED'&&r.engg!=='DONE', s:sWait }] },
+  qua:  { t:'Quality Checked', d:'Flats that passed the quality check.',
+          cols:['tower','flat','crm','qc','stage','row'],
+          views: () => [{ l:'Passed', f:r=>r.quality==='DONE', s:sQcNew }, { l:'Issues pending', f:r=>r.quality==='PENDING', s:sQcNew }] },
+  fac:  { t:'Facility Cleared', d:'Flats cleared by Facility, including those ready for handover and already handed over.',
+          cols:['tower','flat','crm','fac','acc','row'],
+          views: () => [{ l:'Cleared', f:r=>['DONE','POSSDONE','READY'].includes(r.facility), s:sFacNew }] },
+  pos:  { t:'Possession Done', d:'Flats already handed over to customers.',
+          cols:['tower','flat','crm','fac','stage','row'],
+          views: () => [{ l:'Handed over', f:r=>r.facility==='POSSDONE', s:sFacNew }, { l:'Ready to hand over', f:isReadyNow, s:sWait }] },
+  breach:{ t:'TAT Breached', d:'Flats past a turnaround deadline: Accounts 48 hrs, Engineering 7 days from payment, Quality fix 3 days, Facility fix 2 days. Longest overdue first.',
+          cols:['tower','flat','crm','stage','over','row'],
+          views: () => [
+            { l:'All breached',        f:r=>r.anyBreach, s:(a,b)=>overOf(b)-overOf(a) },
+            { l:'Account confirmation', f:r=>r.accBreached, o:r=>r.accOverdueBy, s:(a,b)=>b.accOverdueBy-a.accOverdueBy },
+            { l:'Work chain (Engg / Quality / Facility)', f:r=>r.breached, o:r=>r.overdueBy, s:(a,b)=>b.overdueBy-a.overdueBy } ] },
+  backlog:{ t:'Handover Backlog', d:'Payment received by CRM, possession not yet done. Longest waiting first.',
+          cols:['tower','flat','crm','wait','stage','row'],
+          views: () => [{ l:'All awaiting possession', f:isWaiting, s:sWait }, { l:'Ready now', f:r=>isWaiting(r)&&isReadyNow(r), s:sWait }, { l:'Not ready yet', f:r=>isWaiting(r)&&!isReadyNow(r), s:sWait }] },
+  avgwait:{ t:'Customers Waiting — Longest First', d:'Every customer who has paid and is still awaiting possession, longest wait at the top. If a wait looks impossibly long, check that customer’s payment date in the sheet.',
+          cols:['tower','flat','crm','wait','stage','row'],
+          views: () => [{ l:'All waiting', f:isWaiting, s:sWait }, { l:'Over 30 days', f:r=>isWaiting(r)&&r.days>30, s:sWait }, { l:'Over 90 days', f:r=>isWaiting(r)&&r.days>90, s:sWait }] },
+  bottleneck:{ t:'Where Flats Are Stuck', d:'Every flat not yet handed over, grouped by its current stage (biggest first). “CRM Entry” means CRM has not yet marked the payment as received.',
+          cols:['tower','flat','crm','wait','stage','row'],
+          views: pool => {
+            const c = {};
+            pool.forEach(r => { if (r.stage && r.stage !== 'Possession Done') c[r.stage] = (c[r.stage]||0)+1; });
+            const names = Object.keys(c).sort((a,b)=>c[b]-c[a]);
+            return names.length ? names.map(n => ({ l:n, f:r=>r.stage===n, s:sWait })) : [{ l:'None', f:()=>false }];
+          } },
+  velocity:{ t:'Handovers — Recent', d:'Possessions handed over recently. The velocity figure is the last 28 days divided by 4 weeks.', pool:'raw',
+          cols:['tower','flat','crm','fac','row'],
+          views: () => { const t = today0(); const within = n => r => r.facility==='POSSDONE' && r.facDate && (t - r.facDate)/86400000 <= n;
+            return [{ l:'Last 28 days', f:within(28), s:sFacNew }, { l:'Last 7 days', f:within(7), s:sFacNew }]; } },
+  actPay:{ t:'Payments Received in Period', d:'CRM payment entries dated within the selected period.', pool:'raw',
+          cols:['tower','flat','crm','wait','stage','row'],
+          views: () => [{ l:'In period', f:inP(r=>r.crmDate, r=>r.crm==='RECEIVED'), s:byDate(r=>r.crmDate,-1) }] },
+  actAcc:{ t:'Account Confirmations in Period', d:'Accounts confirmations dated within the selected period.', pool:'raw',
+          cols:['tower','flat','crm','acc','row'],
+          views: () => [{ l:'In period', f:inP(r=>r.accDate, isAccOk), s:sAccNew }] },
+  actEng:{ t:'Engineering Completions in Period', d:'Flats engineering finished within the selected period.', pool:'raw',
+          cols:['tower','flat','crm','eng','row'],
+          views: () => [{ l:'In period', f:inP(r=>r.enggDate, r=>r.engg==='DONE'), s:sEngNew }] },
+  actQc: { t:'Quality Checks Passed in Period', d:'Quality passes dated within the selected period.', pool:'raw',
+          cols:['tower','flat','crm','qc','row'],
+          views: () => [{ l:'In period', f:inP(r=>r.qDate, r=>r.quality==='DONE'), s:sQcNew }] },
+  actPos:{ t:'Possessions Handed Over in Period', d:'Handovers dated within the selected period.', pool:'raw',
+          cols:['tower','flat','crm','fac','row'],
+          views: () => [{ l:'In period', f:inP(r=>r.facDate, r=>r.facility==='POSSDONE'), s:sFacNew }] },
+};
+
+let drillKey = null, drillView = 0, drillOpener = null, drillCache = null;
+function drillPool(d) { return (d.pool === 'raw' && rawRecs.length) ? rawRecs : allRecs; }
+function openDrill(key, opener) {
+  if (!D[key]) return;
+  drillKey = key; drillView = 0; drillOpener = opener || null;
+  document.getElementById('dmS').value = '';
+  document.getElementById('dov').hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderDrill();
+  document.getElementById('dmx').focus();
+}
+function closeDrill() {
+  drillKey = null; drillCache = null;
+  document.getElementById('dov').hidden = true;
+  document.body.style.overflow = '';
+  if (drillOpener && drillOpener.focus) drillOpener.focus();
+  drillOpener = null;
+}
+function renderDrill() {
+  const d = D[drillKey]; if (!d) return;
+  const pool = drillPool(d);
+  const views = d.views(pool);
+  if (drillView >= views.length) drillView = 0;
+  const v = views[drillView];
+
+  document.getElementById('dmT').textContent = d.t;
+  document.getElementById('dmD').textContent = d.d;
+
+  const vbox = document.getElementById('dmV'); vbox.innerHTML = '';
+  if (views.length > 1) views.forEach((x, i) => {
+    const n = pool.filter(x.f).length;
+    const b = document.createElement('button');
+    b.innerHTML = `${esc(x.l)}<span class="agec">${n}</span>`;
+    if (i === drillView) b.classList.add('ac');
+    b.onclick = () => { drillView = i; renderDrill(); };
+    vbox.appendChild(b);
+  });
+
+  const q = (document.getElementById('dmS').value || '').toLowerCase().trim();
+  const all = pool.filter(v.f).sort(v.s || sWait);
+  const rows = q ? all.filter(r => r.customer.toLowerCase().includes(q) || String(r.flat).toLowerCase().includes(q) || String(r.tower).toLowerCase().includes(q)) : all;
+  drillCache = { rows, cols: d.cols, v };
+
+  document.getElementById('dmC').textContent = q ? `${rows.length} of ${all.length} customers` : `${rows.length} customer${rows.length === 1 ? '' : 's'}`;
+  document.getElementById('dmHead').innerHTML = '<tr><th>#</th><th>Customer Name</th>' +
+    d.cols.map(c => `<th${DC[c].cls ? ` class="${DC[c].cls}"` : ''}>${DC[c].h}</th>`).join('') + '</tr>';
+  document.getElementById('dmBody').innerHTML = rows.map((r, i) =>
+    `<tr><td style="color:var(--mut)">${i + 1}</td><td style="font-weight:500">${esc(r.customer)}</td>` +
+    d.cols.map(c => `<td${DC[c].cls ? ` class="${DC[c].cls}"` : ''}>${DC[c].html(r, v)}</td>`).join('') + '</tr>'
+  ).join('') || `<tr><td colspan="${d.cols.length + 2}" style="text-align:center;color:var(--mut);padding:24px">No customers in this list</td></tr>`;
+}
+function dlCsv() {
+  if (!drillCache) return;
+  const { rows, cols, v } = drillCache;
+  const qt = s => '"' + String(s === null || s === undefined ? '' : s).replace(/"/g, '""') + '"';
+  const lines = [['Customer Name', ...cols.map(c => DC[c].h)].map(qt).join(',')]
+    .concat(rows.map(r => [r.customer, ...cols.map(c => DC[c].txt(r, v))].map(qt).join(',')));
+  const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `melizma_${drillKey}_${String(v.l).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${fmtInp(today0())}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+document.addEventListener('click', e => {
+  const el = e.target.closest ? e.target.closest('[data-drill]') : null;
+  if (el) openDrill(el.getAttribute('data-drill'), el);
+  else if (e.target.id === 'dov') closeDrill();
+});
+document.addEventListener('keydown', e => {
+  if (drillKey) {
+    if (e.key === 'Escape') { closeDrill(); return; }
+    if (e.key === 'Tab') {   // keep keyboard focus inside the window
+      const f = [...document.querySelectorAll('#dov button, #dov input, #dov a[href]')].filter(x => !x.disabled);
+      if (f.length) {
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+    return;
+  }
+  const t = e.target;
+  if ((e.key === 'Enter' || e.key === ' ') && t && t.matches && t.matches('[data-drill]')) {
+    e.preventDefault(); openDrill(t.getAttribute('data-drill'), t);
+  }
+});
+document.getElementById('dmS').addEventListener('input', renderDrill);
 
 // ─── DRILL-DOWN PANELS ────────────────────────────────────────────
 function syncDDBtn() {
