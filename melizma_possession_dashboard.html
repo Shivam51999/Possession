@@ -196,6 +196,11 @@ tfoot td:first-child{text-align:left;color:var(--mut);font-size:11px;letter-spac
 .fb{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
 .fb button{background:#fff;border:1px solid #d9dde2;color:#2c3238;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;font-weight:600}
 .fb button:hover,.fb button.ac{background:var(--red);border-color:var(--red);color:#fff}
+/* RECORDS: DEPARTMENT / DATE FILTER + SORT BAR */
+.rfbar{margin-bottom:12px;gap:8px 10px}
+.rfbar .dinp{min-width:0}
+.rfbar select.dinp{cursor:pointer;font-weight:600}
+.rfsep{width:1px;align-self:stretch;background:var(--bd);margin:0 4px}
 footer{margin-top:40px;text-align:center;color:#525a63;font-size:11px;letter-spacing:.5px;border-top:1px solid var(--bd);padding-top:20px;line-height:2}
 footer a{color:var(--red)}
 /* CLICKABLE TILES + SOURCE-DATA WINDOW */
@@ -385,6 +390,40 @@ footer a{color:var(--red)}
   <summary><span class="chev">›</span><span class="ddt">All Customer Records</span><span class="ddm" id="ddRecMeta">Full searchable list</span></summary>
   <div class="ddb">
     <div class="fb" id="fb"></div>
+    <div class="dbar rfbar" id="rfbar">
+      <span class="dlabel">Department</span>
+      <select class="dinp" id="rfDept" onchange="rfChange()">
+        <option value="crm">Payment (CRM)</option>
+        <option value="account">Account</option>
+        <option value="engg">Engineering</option>
+        <option value="quality">Quality</option>
+        <option value="facility">Facility / Possession</option>
+      </select>
+      <select class="dinp" id="rfStat" onchange="renderRecs()" title="Status in the selected department">
+        <option value="">Any status</option>
+        <option value="done">Completed</option>
+        <option value="pend">Pending (paid, not done)</option>
+      </select>
+      <span class="rfsep"></span>
+      <span class="dlabel">Date</span>
+      <input type="date" class="dinp" id="rfFrom" onchange="renderRecs()">
+      <span class="dto">to</span>
+      <input type="date" class="dinp" id="rfTo" onchange="renderRecs()">
+      <div class="dpre">
+        <button onclick="rfPreset('Today')">Today</button>
+        <button onclick="rfPreset('Last 7 Days')">Last 7 Days</button>
+        <button onclick="rfPreset('Last 30 Days')">Last 30 Days</button>
+        <button onclick="rfPreset('This Month')">This Month</button>
+      </div>
+      <span class="rfsep"></span>
+      <span class="dlabel">Sort</span>
+      <select class="dinp" id="rfSort" onchange="rfSortApply()" title="Sorts by the selected department's date">
+        <option value="">Sheet order</option>
+        <option value="new">Newest first</option>
+        <option value="old">Oldest first</option>
+      </select>
+      <button class="dclear" onclick="rfReset()">Reset</button>
+    </div>
     <div class="rw">
       <div class="rh">
         <input class="rs" type="text" id="rs" placeholder="Search name or flat…">
@@ -1335,6 +1374,7 @@ function setSort(key) {
   document.querySelectorAll('.sarr').forEach(el => el.textContent = '');
   const arr = document.getElementById('arr_' + key);
   if (arr) arr.textContent = sortDir === 1 ? '▲' : '▼';
+  const rsel = document.getElementById('rfSort'); if (rsel) rsel.value = '';   // header click overrides the Sort dropdown
   renderRecs();
 }
 function sortRows(rows) {
@@ -1351,6 +1391,80 @@ function sortRows(rows) {
     else c = (va > vb) - (va < vb);   // num & date
     return c * sortDir;
   });
+}
+
+// ─── ALL RECORDS: DEPARTMENT / DATE FILTER + SORT ─────────────────
+// Each department is measured by its own date column and its own done / pending rule.
+const RF = {
+  crm:      { date: r => r.crmDate,  sort: 'crm',
+              done: r => r.crm === 'RECEIVED',
+              pend: r => r.crm !== 'RECEIVED' },
+  account:  { date: r => r.accDate,  sort: 'account',
+              done: r => r.account === 'RECEIVED' || r.account === 'DONE',
+              pend: r => r.crm === 'RECEIVED' && !(r.account === 'RECEIVED' || r.account === 'DONE') },
+  engg:     { date: r => r.enggDate, sort: 'engg',
+              done: r => r.engg === 'DONE',
+              pend: r => r.crm === 'RECEIVED' && r.engg !== 'DONE' },
+  quality:  { date: r => r.qDate,    sort: 'quality',
+              done: r => r.quality === 'DONE',
+              pend: r => r.crm === 'RECEIVED' && r.quality !== 'DONE' },
+  facility: { date: r => r.facDate,  sort: 'facility',
+              done: r => ['DONE','POSSDONE','READY'].includes(r.facility),
+              pend: r => r.crm === 'RECEIVED' && !['DONE','POSSDONE','READY'].includes(r.facility) },
+};
+function rfDeptCfg() {
+  const el = document.getElementById('rfDept');
+  return RF[el ? el.value : 'crm'] || RF.crm;
+}
+function rfMatch(r) {
+  const c = rfDeptCfg();
+  const statEl = document.getElementById('rfStat');
+  const stat = statEl ? statEl.value : '';
+  if (stat === 'done' && !c.done(r)) return false;
+  if (stat === 'pend' && !c.pend(r)) return false;
+  const fv = (document.getElementById('rfFrom') || {}).value;
+  const tv = (document.getElementById('rfTo') || {}).value;
+  if (fv || tv) {
+    const d = c.date(r);
+    if (!d) return false;
+    if (fv && d < new Date(fv + 'T00:00:00')) return false;
+    if (tv && d >= addDays(new Date(tv + 'T00:00:00'), 1)) return false;
+  }
+  return true;
+}
+function rfSortApply() {
+  const v = document.getElementById('rfSort').value;
+  document.querySelectorAll('.sarr').forEach(el => el.textContent = '');
+  if (!v) { sortKey = null; sortDir = 1; }
+  else {
+    sortKey = rfDeptCfg().sort;
+    sortDir = v === 'new' ? -1 : 1;
+    const arr = document.getElementById('arr_' + sortKey);
+    if (arr) arr.textContent = sortDir === 1 ? '▲' : '▼';
+  }
+  renderRecs();
+}
+function rfChange() {
+  // department changed: if a date sort is active, point it at the new department
+  if (document.getElementById('rfSort').value) rfSortApply();
+  else renderRecs();
+}
+function rfPreset(p) {
+  const t = today0();
+  const [f, to] = p === 'Today' ? [t, t] : presetRange(p);
+  document.getElementById('rfFrom').value = f  ? fmtInp(f)  : '';
+  document.getElementById('rfTo').value   = to ? fmtInp(to) : '';
+  renderRecs();
+}
+function rfReset() {
+  document.getElementById('rfDept').value = 'crm';
+  document.getElementById('rfStat').value = '';
+  document.getElementById('rfFrom').value = '';
+  document.getElementById('rfTo').value = '';
+  document.getElementById('rfSort').value = '';
+  sortKey = null; sortDir = 1;
+  document.querySelectorAll('.sarr').forEach(el => el.textContent = '');
+  renderRecs();
 }
 
 // ─── ALL RECORDS TABLE ────────────────────────────────────────────
@@ -1375,7 +1489,7 @@ function renderRecs() {
   const rows = sortRows(allRecs.filter(r => {
     const mf = matchFilter(r);
     const ms = !s || r.customer.toLowerCase().includes(s) || String(r.flat).includes(s) || String(r.tower).toLowerCase().includes(s);
-    return mf && ms;
+    return mf && ms && rfMatch(r);
   }));
   document.getElementById('rc').textContent = `${rows.length} records`;
   const rm = document.getElementById('ddRecMeta');
