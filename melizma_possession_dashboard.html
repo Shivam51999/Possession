@@ -409,6 +409,14 @@ footer a{color:var(--red)}
         <button onclick="rfPreset('Last 30 Days')">Last 30 Days</button>
         <button onclick="rfPreset('This Month')">This Month</button>
       </div>
+      <span class="rfsep" style="flex-basis:100%;height:0;width:100%;background:none"></span>
+      <span class="dlabel">Due Date</span>
+      <div class="dpre" id="rfDueMode"></div>
+      <div class="dpre" id="rfDueChips"></div>
+      <span class="dto">or</span>
+      <input type="number" min="0" class="dinp agei" id="rfDueN" placeholder="days" onkeydown="if(event.key==='Enter')rfDueCustom()">
+      <button class="dapply" onclick="rfDueCustom()">Apply</button>
+      <span class="dto" style="font-size:11px">due date = CRM entry date + days</span>
       <span class="rfsep"></span>
       <span class="dlabel">Sort</span>
       <select class="dinp" id="rfSort" onchange="rfSortApply()" title="Sorts by the selected department's date">
@@ -1419,19 +1427,34 @@ function rfDateOk(r, c) {
   if (tv && d >= addDays(new Date(tv + 'T00:00:00'), 1)) return false;
   return true;
 }
-function rfMatch(r) {
+// Due date = CRM entry date + N days. "over" = due date has passed; "within" = not yet due.
+let rfDue = null, rfDueModeV = 'over';
+function rfDueOkFor(r, n, mode) {
+  if (n === null) return true;
+  if (!r.crmDate || r.days === null) return false;
+  return mode === 'over' ? r.days > n : r.days <= n;
+}
+function rfDueOk(r) { return rfDueOkFor(r, rfDue, rfDueModeV); }
+function rfCore(r) {
   const c = rfDeptCfg();
   if (rfStat === 'done' && !c.done(r)) return false;
   if (rfStat === 'pend' && !c.pend(r)) return false;
   return rfDateOk(r, c);
+}
+function rfMatch(r) { return rfCore(r) && rfDueOk(r); }
+function rfDueCustom() {
+  const n = parseInt(document.getElementById('rfDueN').value, 10);
+  rfDue = isNaN(n) ? null : Math.max(0, n);
+  renderRecs();
 }
 // Chips with live counts. Counts respect the top filter buttons, the search box and the date range.
 function rfRenderChips() {
   const dbox = document.getElementById('rfDeptChips'), sbox = document.getElementById('rfStatChips');
   if (!dbox || !sbox) return;
   const s = (document.getElementById('rs').value || '').toLowerCase();
-  const pool = allRecs.filter(r => matchFilter(r) &&
+  const poolAll = allRecs.filter(r => matchFilter(r) &&
     (!s || r.customer.toLowerCase().includes(s) || String(r.flat).includes(s) || String(r.tower).toLowerCase().includes(s)));
+  const pool = poolAll.filter(rfDueOk);
   dbox.innerHTML = '';
   Object.keys(RF).forEach(k => {
     const c = RF[k], base = pool.filter(r => rfDateOk(r, c));
@@ -1451,6 +1474,35 @@ function rfRenderChips() {
     b.onclick = () => { rfStat = k; renderRecs(); };
     sbox.appendChild(b);
   });
+
+  // Due-date chips (counts ignore the due filter itself, so you see what each choice would give)
+  const mbox = document.getElementById('rfDueMode'), ubox = document.getElementById('rfDueChips');
+  if (!mbox || !ubox) return;
+  mbox.innerHTML = '';
+  [['over', 'Due date passed'], ['within', 'Not yet due']].forEach(([k, l]) => {
+    const b = document.createElement('button');
+    b.textContent = l;
+    if (k === rfDueModeV) b.classList.add('ac');
+    b.onclick = () => { rfDueModeV = k; renderRecs(); };
+    mbox.appendChild(b);
+  });
+  const core = poolAll.filter(rfCore);
+  const custom = rfDue !== null && ![7, 14, 21, 30].includes(rfDue);
+  ubox.innerHTML = '';
+  [[null, 'Any', core.length], [7, '7 days'], [14, '14 days'], [21, '21 days'], [30, '30 days']].forEach(([n, l, cnt]) => {
+    const b = document.createElement('button');
+    const c = cnt !== undefined ? cnt : core.filter(r => rfDueOkFor(r, n, rfDueModeV)).length;
+    b.innerHTML = `${l}<span class="agec">${c}</span>`;
+    if (n === rfDue) b.classList.add('ac');
+    b.onclick = () => { rfDue = n; document.getElementById('rfDueN').value = ''; renderRecs(); };
+    ubox.appendChild(b);
+  });
+  if (custom) {
+    const b = document.createElement('button');
+    b.innerHTML = `${rfDue} days<span class="agec">${core.filter(r => rfDueOkFor(r, rfDue, rfDueModeV)).length}</span>`;
+    b.classList.add('ac');
+    ubox.appendChild(b);
+  }
 }
 function rfSortApply() {
   const v = document.getElementById('rfSort').value;
@@ -1477,7 +1529,8 @@ function rfPreset(p) {
   renderRecs();
 }
 function rfReset() {
-  rfDept = 'crm'; rfStat = '';
+  rfDept = 'crm'; rfStat = ''; rfDue = null; rfDueModeV = 'over';
+  document.getElementById('rfDueN').value = '';
   document.getElementById('rfFrom').value = '';
   document.getElementById('rfTo').value = '';
   document.getElementById('rfSort').value = '';
