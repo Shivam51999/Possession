@@ -201,6 +201,8 @@ tfoot td:first-child{text-align:left;color:var(--mut);font-size:11px;letter-spac
 .rfbar .dinp{min-width:0}
 .rfbar select.dinp{cursor:pointer;font-weight:600}
 .rfsep{width:1px;align-self:stretch;background:var(--bd);margin:0 4px}
+.agec.cg{background:#e9f7ef;color:#177a41}.agec.cp{background:#fdf3e3;color:#b06f10}
+.dpre button.ac .agec.cg,.dpre button.ac .agec.cp{background:rgba(255,255,255,.28);color:#fff}
 footer{margin-top:40px;text-align:center;color:#525a63;font-size:11px;letter-spacing:.5px;border-top:1px solid var(--bd);padding-top:20px;line-height:2}
 footer a{color:var(--red)}
 /* CLICKABLE TILES + SOURCE-DATA WINDOW */
@@ -392,19 +394,11 @@ footer a{color:var(--red)}
     <div class="fb" id="fb"></div>
     <div class="dbar rfbar" id="rfbar">
       <span class="dlabel">Department</span>
-      <select class="dinp" id="rfDept" onchange="rfChange()">
-        <option value="crm">Payment (CRM)</option>
-        <option value="account">Account</option>
-        <option value="engg">Engineering</option>
-        <option value="quality">Quality</option>
-        <option value="facility">Facility / Possession</option>
-      </select>
-      <select class="dinp" id="rfStat" onchange="renderRecs()" title="Status in the selected department">
-        <option value="">Any status</option>
-        <option value="done">Completed</option>
-        <option value="pend">Pending (paid, not done)</option>
-      </select>
+      <div class="dpre" id="rfDeptChips"></div>
       <span class="rfsep"></span>
+      <span class="dlabel">Work Status</span>
+      <div class="dpre" id="rfStatChips"></div>
+      <span class="rfsep" style="flex-basis:100%;height:0;width:100%;background:none"></span>
       <span class="dlabel">Date</span>
       <input type="date" class="dinp" id="rfFrom" onchange="renderRecs()">
       <span class="dto">to</span>
@@ -1412,25 +1406,51 @@ const RF = {
               done: r => ['DONE','POSSDONE','READY'].includes(r.facility),
               pend: r => r.crm === 'RECEIVED' && !['DONE','POSSDONE','READY'].includes(r.facility) },
 };
-function rfDeptCfg() {
-  const el = document.getElementById('rfDept');
-  return RF[el ? el.value : 'crm'] || RF.crm;
+const RF_LABELS = { crm:'Payment (CRM)', account:'Account', engg:'Engineering', quality:'Quality', facility:'Facility / Possession' };
+let rfDept = 'crm', rfStat = '';
+function rfDeptCfg() { return RF[rfDept] || RF.crm; }
+function rfDateOk(r, c) {
+  const fv = (document.getElementById('rfFrom') || {}).value;
+  const tv = (document.getElementById('rfTo') || {}).value;
+  if (!fv && !tv) return true;
+  const d = c.date(r);
+  if (!d) return false;
+  if (fv && d < new Date(fv + 'T00:00:00')) return false;
+  if (tv && d >= addDays(new Date(tv + 'T00:00:00'), 1)) return false;
+  return true;
 }
 function rfMatch(r) {
   const c = rfDeptCfg();
-  const statEl = document.getElementById('rfStat');
-  const stat = statEl ? statEl.value : '';
-  if (stat === 'done' && !c.done(r)) return false;
-  if (stat === 'pend' && !c.pend(r)) return false;
-  const fv = (document.getElementById('rfFrom') || {}).value;
-  const tv = (document.getElementById('rfTo') || {}).value;
-  if (fv || tv) {
-    const d = c.date(r);
-    if (!d) return false;
-    if (fv && d < new Date(fv + 'T00:00:00')) return false;
-    if (tv && d >= addDays(new Date(tv + 'T00:00:00'), 1)) return false;
-  }
-  return true;
+  if (rfStat === 'done' && !c.done(r)) return false;
+  if (rfStat === 'pend' && !c.pend(r)) return false;
+  return rfDateOk(r, c);
+}
+// Chips with live counts. Counts respect the top filter buttons, the search box and the date range.
+function rfRenderChips() {
+  const dbox = document.getElementById('rfDeptChips'), sbox = document.getElementById('rfStatChips');
+  if (!dbox || !sbox) return;
+  const s = (document.getElementById('rs').value || '').toLowerCase();
+  const pool = allRecs.filter(r => matchFilter(r) &&
+    (!s || r.customer.toLowerCase().includes(s) || String(r.flat).includes(s) || String(r.tower).toLowerCase().includes(s)));
+  dbox.innerHTML = '';
+  Object.keys(RF).forEach(k => {
+    const c = RF[k], base = pool.filter(r => rfDateOk(r, c));
+    const nd = base.filter(c.done).length, np = base.filter(c.pend).length;
+    const b = document.createElement('button');
+    b.innerHTML = `${RF_LABELS[k]}<span class="agec cg" title="Completed">✓ ${nd}</span><span class="agec cp" title="Pending">⏳ ${np}</span>`;
+    if (k === rfDept) b.classList.add('ac');
+    b.onclick = () => { rfDept = k; rfChange(); };
+    dbox.appendChild(b);
+  });
+  const c = rfDeptCfg(), base = pool.filter(r => rfDateOk(r, c));
+  sbox.innerHTML = '';
+  [['', 'All', base.length], ['done', 'Completed', base.filter(c.done).length], ['pend', 'Pending', base.filter(c.pend).length]].forEach(([k, l, n]) => {
+    const b = document.createElement('button');
+    b.innerHTML = `${l}<span class="agec">${n}</span>`;
+    if (k === rfStat) b.classList.add('ac');
+    b.onclick = () => { rfStat = k; renderRecs(); };
+    sbox.appendChild(b);
+  });
 }
 function rfSortApply() {
   const v = document.getElementById('rfSort').value;
@@ -1457,8 +1477,7 @@ function rfPreset(p) {
   renderRecs();
 }
 function rfReset() {
-  document.getElementById('rfDept').value = 'crm';
-  document.getElementById('rfStat').value = '';
+  rfDept = 'crm'; rfStat = '';
   document.getElementById('rfFrom').value = '';
   document.getElementById('rfTo').value = '';
   document.getElementById('rfSort').value = '';
@@ -1492,6 +1511,7 @@ function renderRecs() {
     return mf && ms && rfMatch(r);
   }));
   document.getElementById('rc').textContent = `${rows.length} records`;
+  rfRenderChips();
   const rm = document.getElementById('ddRecMeta');
   if (rm) rm.textContent = `${allRecs.length} customers · search, sort and filter`;
   document.getElementById('rtb').innerHTML = rows.map((r,i) => `<tr${r.anyBreach?' style="background:#fdf6f5"':''}>
